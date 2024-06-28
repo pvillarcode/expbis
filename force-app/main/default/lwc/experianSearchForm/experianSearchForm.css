@@ -1,0 +1,25 @@
+.slds-card {
+  margin: 0.5rem;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.custom-form {
+  gap: 0.5rem; /* Adjust the gap between form elements */
+}
+
+.custom-input {
+  margin-bottom: 0.1rem; /* Adjust the bottom margin of input fields */
+}
+
+.custom-layout {
+  gap: 0.5rem; /* Adjust the gap between layout items */
+}
+
+.custom-layout-item {
+  padding: 0; /* Remove padding from layout items */
+}

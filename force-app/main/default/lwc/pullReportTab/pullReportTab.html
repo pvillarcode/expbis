@@ -1,37 +1,38 @@
 <template>
-    <lightning-card title="Pull Report">
-        <div>
-            <!-- Show the loading icon when the "loading" attribute is true -->
-            <lightning-spinner if:true={loading} variant="brand" size="medium"></lightning-spinner>
-            <p class="error" if:true={error}>{error}</p>
+  <lightning-card>
+    <div>
+      <!-- Show the loading icon when the "loading" attribute is true -->
+      <lightning-spinner
+        if:true={loading}
+        variant="brand"
+        size="medium"
+      ></lightning-spinner>
+      <p class="error" if:true={error}>{error}</p>
+    </div>
+
+    <lightning-card>
+      <template if:true={businessFormStep}>
+        <div class="slds-grid">
+          <c-experian-search-form
+            class="slds-col slds-size_4-of-12"
+          ></c-experian-search-form>
+          <c-search-results
+            class="slds-col slds-size_8-of-12"
+          ></c-search-results>
         </div>
-              
-        <lightning-card>
-            <lightning-tabset variant="vertical">
-                <lightning-tab label="Search Business">
-                    <lightning-icon icon-name="utility:connected_apps" alternative-text="Connected" size="x-small"
-                    title="x-small size"></lightning-icon>
-                    <template if:true={businessFormStep}>
-                        <c-experian-search-form></c-experian-search-form>
-                    </template>
-                </lightning-tab>
-                <lightning-tab label="Select Business">
-                    <template if:true={searchResultsStep}>
-                        <c-experian-search-result></c-experian-search-result>
-                    </template>
-                </lightning-tab>
-                <lightning-tab label="Select Report Type">
-                    <template if:true={selectReportStep}>
-                        <c-select-report-type>
-                        </c-select-report-type>
-                    </template>  
-                </lightning-tab>
-                <lightning-tab label="Select Report Type">
-                    <template if:true={viewReportStep} >
-                        <c-view-report></c-view-report>
-                    </template>
-                </lightning-tab>
-            </lightning-tabset>
-        </lightning-card>
+      </template>
+
+      <template if:true={searchResultsStep}>
+        <c-experian-search-result></c-experian-search-result>
+      </template>
+
+      <template if:true={selectReportStep}>
+        <c-select-report-type> </c-select-report-type>
+      </template>
+
+      <template if:true={viewReportStep}>
+        <c-view-report></c-view-report>
+      </template>
     </lightning-card>
+  </lightning-card>
 </template>

@@ -1,5 +1,107 @@
 <template>
-    <lightning-card>
-        Search form
+  <div class="slds-p-around_xx-small">
+    <lightning-card title="Business Information" icon-name="standard:record">
+      <div class="slds-var-p-around_medium">
+        <form class="slds-form_stacked custom-form">
+          <lightning-radio-group
+            name="searchType"
+            label="Search by"
+            options={searchOptions}
+            value={searchType}
+            onchange={handleSearchTypeChange}
+          >
+          </lightning-radio-group>
+          <lightning-input
+            label="BIN"
+            value={bin}
+            onchange={handleInputChange}
+            data-id="bin"
+          ></lightning-input>
+          <lightning-input
+            label="Business name"
+            required
+            value={businessName}
+            onchange={handleInputChange}
+            data-id="businessName"
+          ></lightning-input>
+          <lightning-input
+            label="Address"
+            value={address}
+            onchange={handleInputChange}
+            data-id="address"
+          ></lightning-input>
+
+          <lightning-layout multiple-rows="true">
+            <lightning-layout-item size="4">
+              <lightning-input
+                label="City"
+                value={city}
+                onchange={handleInputChange}
+                data-id="city"
+              ></lightning-input>
+            </lightning-layout-item>
+            <lightning-layout-item size="4">
+              <lightning-input
+                label="State"
+                value={state}
+                onchange={handleInputChange}
+                data-id="state"
+              ></lightning-input>
+            </lightning-layout-item>
+            <lightning-layout-item size="4">
+              <lightning-input
+                label="Zip"
+                value={zip}
+                onchange={handleInputChange}
+                data-id="zip"
+              ></lightning-input>
+            </lightning-layout-item>
+          </lightning-layout>
+
+          <lightning-input
+            label="Country"
+            value={country}
+            onchange={handleInputChange}
+            data-id="country"
+          ></lightning-input>
+          <lightning-input
+            label="Phone"
+            value={phone}
+            onchange={handleInputChange}
+            data-id="phone"
+          ></lightning-input>
+          <lightning-input
+            label="Federal Tax ID"
+            value={taxId}
+            onchange={handleInputChange}
+            data-id="taxId"
+          ></lightning-input>
+          <lightning-input
+            label="Reference"
+            value={reference}
+            onchange={handleInputChange}
+            data-id="reference"
+          ></lightning-input>
+          <lightning-layout class="button-layout">
+            <lightning-layout-item>
+              <lightning-button
+                variant="brand"
+                label="Search"
+                title="Search"
+                onclick={handleClick}
+              ></lightning-button>
+            </lightning-layout-item>
+            <lightning-layout-item>
+              <lightning-button
+                class="slds-button slds-m-left_x-small"
+                label="Clear search"
+                onclick={handleClear}
+                variant="neutral"
+              ></lightning-button>
+            </lightning-layout-item>
+          </lightning-layout>
+        </form>
+      </div>
     </lightning-card>
+  </div>
 </template>

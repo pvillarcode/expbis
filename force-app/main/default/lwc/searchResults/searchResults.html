@@ -1,0 +1,39 @@
+<template>
+  <lightning-card title="Search Results">
+    <div class="slds-table_header">
+      <span class="slds-text-title">3 Search Results</span>
+      <button class="close-button" onclick={handleCloseSearch}>
+        Close Search
+      </button>
+    </div>
+    <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+      <thead>
+        <tr>
+          <th scope="col">Business</th>
+          <th scope="col">Matching name & address</th>
+          <th scope="col">Business contact</th>
+          <th scope="col">Data depth indicator</th>
+        </tr>
+      </thead>
+      <tbody>
+        <template for:each={searchResults} for:item="result">
+          <tr key={result.id}>
+            <td>
+              <div class="slds-text-heading_small">BIN: {result.bin}</div>
+              <a href="#" class="slds-text-link">{result.businessName}</a>
+              <div>{result.address}</div>
+            </td>
+            <td>
+              <div>{result.matchingName}</div>
+              <div>{result.matchingAddress}</div>
+            </td>
+            <td>{result.contact}</td>
+            <td>
+              <div class="depth-indicator">{result.dataDepth}</div>
+            </td>
+          </tr>
+        </template>
+      </tbody>
+    </table>
+  </lightning-card>
+</template>

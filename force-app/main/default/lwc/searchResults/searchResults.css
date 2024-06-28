@@ -1,0 +1,23 @@
+.slds-table_header {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  color: #0070d2;
+  cursor: pointer;
+}
+
+.depth-indicator {
+  background-color: #e0e0e0;
+  border-radius: 50%;
+  width: 2rem;
+  height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+}
