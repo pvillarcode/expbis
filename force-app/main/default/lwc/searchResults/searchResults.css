@@ -21,3 +21,12 @@
   justify-content: center;
   font-weight: bold;
 }
+
+.results-container {
+  max-width: 98%;
+  overflow-x: auto;
+}
+
+.slds-table {
+  min-width: 600px; /* Ajusta según el contenido mínimo necesario */
+}

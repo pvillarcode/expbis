@@ -31,6 +31,16 @@ export default class SearchResultsComponent extends LightningElement {
       matchingAddress: "475 Anton Blvd Bldg D, Costa Mesa, CA 926267037",
       contact: "(714) 830-7000",
       dataDepth: 3
+    },
+    {
+      id: "4",
+      bin: "421298504",
+      businessName: "Experian Marketing Solutions, LLC",
+      address: "475 Anton Blvd Bldg D, Costa Mesa, CA 926267037",
+      matchingName: "Experian",
+      matchingAddress: "475 Anton Blvd Bldg D, Costa Mesa, CA 926267037",
+      contact: "(714) 830-7000",
+      dataDepth: 3
     }
   ];
 
