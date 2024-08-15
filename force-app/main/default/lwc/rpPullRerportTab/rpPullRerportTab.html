@@ -1,0 +1,33 @@
+<template>
+  <lightning-card>
+    <template if:true="{currentPage}">
+      <template if:true="{isBussinessSearch}">
+        <div class="slds-grid">
+          <c-rp-business-search
+            onbusinesssearch="{handleBusinessSearched}"
+            businessid="{businessId}"
+            class="slds-col slds-size_4-of-12"
+          ></c-rp-business-search>
+          <c-rp-search-results
+            onbusinessselected="{handleBusinessSelect}"
+            businessid="{businessId}"
+            class="slds-col slds-size_8-of-12"
+          ></c-rp-search-results>
+        </div>
+      </template>
+      <template if:true="{isReportSelection}">
+        <c-rp-report-selection
+          business-id="{businessId}"
+          onreportselected="{handleReportSelected}"
+        ></c-rp-report-selection>
+      </template>
+      <template if:true="{isReportDisplay}">
+        <c-rp-report-display
+          business-id="{businessId}"
+          report-type="{reportType}"
+          scoring-model="{scoringModel}"
+        ></c-rp-report-display>
+      </template>
+    </template>
+  </lightning-card>
+</template>

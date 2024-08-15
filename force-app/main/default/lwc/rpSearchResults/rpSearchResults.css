@@ -1,0 +1,17 @@
+.slds-box {
+  padding: 1rem;
+}
+.slds-table th {
+  text-align: left;
+}
+.slds-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.slds-table_header {
+  display: flex;
+  justify-content: space-between;
+  padding: 1rem;
+}

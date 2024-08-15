@@ -1,0 +1,89 @@
+<template>
+  <lightning-card title="Pull Report" class="slds-p-around_large">
+    <div class="slds-grid slds-wrap slds-p-around_large">
+      <div class="slds-col slds-size_2-of-6 slds-large-size_2-of-6">
+        <h2 class="slds-text-heading_small">EXPERIAN SERVICES CORP</h2>
+        <lightning-button
+          label="Back"
+          variant="base"
+          class="slds-m-bottom_small"
+        ></lightning-button>
+        <p>475 ANTON BLVD<br />COSTA MESA, CA</p>
+        <div>
+          <h2>
+            Business owner 1
+            <lightning-button-icon
+              icon-name="utility:add"
+              alternative-text="Add"
+              class="slds-button_icon-border-filled"
+            ></lightning-button-icon>
+          </h2>
+          <p>No data provided</p>
+        </div>
+        <lightning-button
+          label="+ Add business owner"
+          variant="neutral"
+          class="slds-m-bottom_small"
+        ></lightning-button>
+        <div>
+          <h2>Other Info</h2>
+          <p>
+            BIN # <a href="https://example.com" target="_blank">798304266</a>
+          </p>
+        </div>
+      </div>
+      <div class="slds-col slds-size_4-of-6 slds-large-size_4-of-6">
+        <h2 class="slds-text-heading_small" id="dialog-heading-id-115">
+          Customize Report
+        </h2>
+        <lightning-combobox
+          name="select-report"
+          label="Select report"
+          value="DecisionIQ Credit"
+          options="{reportOptions}"
+          class="slds-m-bottom_small"
+        ></lightning-combobox>
+        <p>
+          DecisionIQ Credit is a configurable report option that will render an
+          automated credit decision, custom action and credit limit based on the
+          selected Scoring Model and Decision Policy.
+        </p>
+        <lightning-radio-group
+          name="scoringModel"
+          label="Select scoring model"
+          options="{scoringModelOptions}"
+          value="Intelliscore Plus"
+          class="slds-m-bottom_small"
+        ></lightning-radio-group>
+        <lightning-combobox
+          name="select-decision-policy"
+          label="Select decision policy"
+          options="{decisionPolicyOptions}"
+          placeholder="- Select -"
+          class="slds-m-bottom_small"
+        ></lightning-combobox>
+        <div class="slds-m-bottom_small">
+          <lightning-input
+            type="checkbox"
+            label="Use selected scoring model as default"
+          ></lightning-input>
+          <lightning-input
+            type="checkbox"
+            label="Use selected decision policy as default"
+          ></lightning-input>
+          <lightning-input
+            type="checkbox"
+            label="Use selected report as default"
+            checked
+          ></lightning-input>
+        </div>
+        <lightning-button
+          label="Pull Report"
+          variant="brand"
+          onclick="{handlePullReport}"
+          >></lightning-button
+        >
+      </div>
+    </div>
+  </lightning-card>
+</template>

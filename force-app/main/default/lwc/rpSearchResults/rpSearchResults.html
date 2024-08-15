@@ -1,0 +1,56 @@
+<template>
+  <lightning-card title="Search Results">
+    <div class="slds-table_header">
+      <span class="slds-text-title">3 Search Results</span>
+    </div>
+    <div class="slds-theme_default">
+      <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+        <thead>
+          <tr>
+            <th scope="col">
+              <div class="slds-truncate">Business</div>
+            </th>
+            <th scope="col">
+              <div class="slds-truncate">Matching name & address</div>
+            </th>
+            <th scope="col">
+              <div class="slds-truncate">Business contact</div>
+            </th>
+            <th scope="col">
+              <div class="slds-truncate">Data depth indicator</div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <template for:each="{businesses}" for:item="business">
+            <tr
+              key="{business.BIN}"
+              onclick="{handleSelectBusiness}"
+              data-bin="{business.BIN}"
+            >
+              <td>
+                <div class="slds-truncate">
+                  <strong>BIN:</strong> {business.BIN}<br />
+                  <strong>{business.name}</strong><br />
+                  {business.address}
+                </div>
+              </td>
+              <td>
+                <div class="slds-truncate">
+                  {business.matchingName}<br />
+                  {business.matchingAddress}
+                </div>
+              </td>
+              <td>
+                <div class="slds-truncate">{business.contact}</div>
+              </td>
+              <td>
+                <div class="slds-truncate">{business.dataDepth}</div>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </lightning-card>
+</template>
