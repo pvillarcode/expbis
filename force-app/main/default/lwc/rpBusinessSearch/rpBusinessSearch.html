@@ -1,4 +1,11 @@
 <template>
+  <div if:true={isLoading}>
+    <lightning-spinner
+      alternative-text="Loading"
+      size="medium"
+      variant="brand"
+    ></lightning-spinner>
+  </div>
   <div class="slds-p-around_xx-small">
     <lightning-card title="Business Information" icon-name="standard:record">
       <div class="slds-var-p-around_medium">
@@ -7,28 +14,31 @@
             <lightning-radio-group
               name="searchType"
               label="Search by"
-              options="{searchOptions}"
-              value="{searchType}"
-              onchange="{handleSearchTypeChange}"
+              options={searchOptions}
+              value={searchType}
+              onchange={handleSearchTypeChange}
             >
             </lightning-radio-group>
             <lightning-input
               label="BIN"
-              value="{bin}"
-              onchange="{handleInputChange}"
+              name="bin"
+              value={searchCriteria.bin}
+              onchange={handleInputChange}
               data-id="bin"
             ></lightning-input>
             <lightning-input
               label="Business name"
               required
-              value="{businessName}"
-              onchange="{handleInputChange}"
+              name="businessName"
+              value={searchCriteria.businessName}
+              onchange={handleInputChange}
               data-id="businessName"
             ></lightning-input>
             <lightning-input
               label="Address"
-              value="{address}"
-              onchange="{handleInputChange}"
+              name="address"
+              value={searchCriteria.address}
+              onchange={handleInputChange}
               data-id="address"
             ></lightning-input>
 
@@ -36,24 +46,29 @@
               <lightning-layout-item size="4">
                 <lightning-input
                   label="City"
-                  value="{city}"
-                  onchange="{handleInputChange}"
+                  required
+                  name="city"
+                  value={searchCriteria.city}
+                  onchange={handleInputChange}
                   data-id="city"
                 ></lightning-input>
               </lightning-layout-item>
               <lightning-layout-item size="4">
                 <lightning-input
                   label="State"
-                  value="{state}"
-                  onchange="{handleInputChange}"
+                  required
+                  name="state"
+                  value={searchCriteria.state}
+                  onchange={handleInputChange}
                   data-id="state"
                 ></lightning-input>
               </lightning-layout-item>
               <lightning-layout-item size="4">
                 <lightning-input
                   label="Zip"
-                  value="{zip}"
-                  onchange="{handleInputChange}"
+                  name="zip"
+                  value={searchCriteria.zip}
+                  onchange={handleInputChange}
                   data-id="zip"
                 ></lightning-input>
               </lightning-layout-item>
@@ -61,26 +76,30 @@
 
             <lightning-input
               label="Country"
-              value="{country}"
-              onchange="{handleInputChange}"
+              name="country"
+              value={searchCriteria.country}
+              onchange={handleInputChange}
               data-id="country"
             ></lightning-input>
             <lightning-input
               label="Phone"
-              value="{phone}"
-              onchange="{handleInputChange}"
+              name="phone"
+              value={searchCriteria.phone}
+              onchange={handleInputChange}
               data-id="phone"
             ></lightning-input>
             <lightning-input
               label="Federal Tax ID"
-              value="{taxId}"
-              onchange="{handleInputChange}"
+              name="taxId"
+              value={searchCriteria.taxId}
+              onchange={handleInputChange}
               data-id="taxId"
             ></lightning-input>
             <lightning-input
               label="Reference"
-              value="{reference}"
-              onchange="{handleInputChange}"
+              name="reference"
+              value={searchCriteria.reference}
+              onchange={handleInputChange}
               data-id="reference"
             ></lightning-input>
           </div>
@@ -91,14 +110,14 @@
                   variant="brand"
                   label="Search"
                   title="Search"
-                  onclick="{handleSearch}"
+                  onclick={handleSearch}
                 ></lightning-button>
               </lightning-layout-item>
               <lightning-layout-item>
                 <lightning-button
                   class="slds-button slds-m-left_x-small"
                   label="Clear search"
-                  onclick="{handleClear}"
+                  onclick={handleClear}
                   variant="neutral"
                 ></lightning-button>
               </lightning-layout-item>
@@ -108,9 +127,4 @@
       </div>
     </lightning-card>
   </div>
-  <h1>Business Search</h1>
-  <lightning-button
-    label="Select Business"
-    onclick="{handleSearchBusiness}"
-  ></lightning-button>
 </template>

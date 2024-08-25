@@ -1,7 +1,7 @@
 <template>
   <lightning-card title="Search Results">
     <div class="slds-table_header">
-      <span class="slds-text-title">3 Search Results</span>
+      <span class="slds-text-title">{searchResultsCount} Search Results</span>
     </div>
     <div class="slds-theme_default">
       <table class="slds-table slds-table_bordered slds-table_cell-buffer">
@@ -17,16 +17,16 @@
               <div class="slds-truncate">Business contact</div>
             </th>
             <th scope="col">
-              <div class="slds-truncate">Data depth indicator</div>
+              <div class="slds-truncate">Tradelines</div>
             </th>
           </tr>
         </thead>
         <tbody>
-          <template for:each="{businesses}" for:item="business">
+          <template for:each={businesses} for:item="business">
             <tr
-              key="{business.BIN}"
-              onclick="{handleSelectBusiness}"
-              data-bin="{business.BIN}"
+              key={business.BIN}
+              onclick={handleSelectBusiness}
+              data-bin={business.BIN}
             >
               <td>
                 <div class="slds-truncate">
@@ -45,7 +45,7 @@
                 <div class="slds-truncate">{business.contact}</div>
               </td>
               <td>
-                <div class="slds-truncate">{business.dataDepth}</div>
+                <div class="slds-truncate">{business.tradelines}</div>
               </td>
             </tr>
           </template>
