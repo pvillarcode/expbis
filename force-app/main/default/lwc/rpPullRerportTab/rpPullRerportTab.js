@@ -1,6 +1,8 @@
 import { LightningElement, track } from "lwc";
-import getReport from "@salesforce/apex/PullReport.getReport";
+import getPDFReport from "@salesforce/apex/PullReport.getPDFReport";
+import getJSONReport from "@salesforce/apex/PullReport.getJSONReport";
 import savePDFToSalesforce from "@salesforce/apex/PullReport.savePDFToSalesforce";
+import saveExperianInformation from "@salesforce/apex/PullReport.saveExperianInformation";
 
 export default class RpPullReportTab extends LightningElement {
   @track currentPage = "rp-business-search";
@@ -45,18 +47,24 @@ export default class RpPullReportTab extends LightningElement {
 
   handlePullReport() {
     this.currentPage = "rp-report-display";
-    this.handleGetPDF();
+    this.handleGetReport();
   }
 
-  async handleGetPDF() {
+  async handleGetReport() {
     try {
       // Fetch the report using the existing getReport method
-      const result = await getReport();
+
+      const [pdfResult, jsonResult] = await Promise.all([
+        getPDFReport(),
+        getJSONReport()
+      ]);
+
+      const result = await getPDFReport();
       console.log("reportData:", result);
 
       // Assuming the result is JSON containing a base64 encoded PDF
-      const jsonResult = JSON.parse(result);
-      const base64PDF = jsonResult.results; // Adjust this if the key is different
+      const jsonPDF = JSON.parse(pdfResult);
+      const base64PDF = jsonPDF.results;
 
       // Create a Blob from the Base64 encoded string
       const byteCharacters = atob(base64PDF);
@@ -81,13 +89,19 @@ export default class RpPullReportTab extends LightningElement {
         customObjectId: this.recordId
       });
       console.log("Saved to Salesforce with ID: ", contentDocumentId);
+
+      const experianBusinessId = await saveExperianInformation({
+        jsonData: jsonResult
+      });
+
+      console.log("Saved to Salesforce with ID: ", experianBusinessId);
     } catch (error) {
       console.error("Error handling PDF:", error);
     }
   }
 
   fetchReport() {
-    getReport()
+    getPDFReport()
       .then((result) => {
         console.log("reportHtml:", result);
         this.report = result;
