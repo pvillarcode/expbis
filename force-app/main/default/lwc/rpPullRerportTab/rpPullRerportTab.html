@@ -17,8 +17,9 @@
       </template>
       <template if:true={isReportSelection}>
         <c-rp-report-selection
-          business-id={businessId}
+          business={selectedBusiness}
           onreportselected={handleReportSelected}
+          onpullreport={handlePullReport}
         ></c-rp-report-selection>
       </template>
       <template if:true={isReportDisplay}>
@@ -26,6 +27,7 @@
           business-id={businessId}
           report-type={reportType}
           scoring-model={scoringModel}
+          report={report}
         ></c-rp-report-display>
       </template>
     </template>

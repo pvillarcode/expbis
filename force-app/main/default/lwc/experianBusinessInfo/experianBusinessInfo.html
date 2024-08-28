@@ -1,0 +1,63 @@
+<template>
+  <lightning-card title="Experian Risk Dashboard">
+    <div class="slds-grid slds-gutters">
+      <!-- First Column -->
+      <div class="slds-col slds-size_1-of-2">
+        <div class="slds-grid slds-wrap">
+          <!-- Intelliscore -->
+          <div class="slds-col slds-size_1-of-2 small-box">
+            <div class="section-title">
+              Risk Scores and Credit Limit Recommendation
+            </div>
+            <div class="score-box">
+              <div class="score-type">Intelliscore</div>
+              <div class="score-value">N/A</div>
+            </div>
+          </div>
+          <!-- Financial Stability Risk -->
+          <div class="slds-col slds-size_1-of-2 small-box">
+            <div class="section-title">&nbsp;</div>
+            <div class="score-box">
+              <div class="score-type">Financial Stability Risk</div>
+              <div class="score-value">N/A</div>
+            </div>
+          </div>
+        </div>
+        <div class="credit-limit">Credit Limit Recommendation: N/A</div>
+      </div>
+
+      <!-- Second Column -->
+      <div class="slds-col slds-size_1-of-2">
+        <div class="slds-grid slds-wrap slds-grid_vertical-align-start">
+          <!-- Days Beyond Terms -->
+          <div class="slds-col slds-size_1-of-3 small-box">
+            <div class="section-title">Days Beyond Terms</div>
+            <div class="score-box">
+              <div class="score-value">N/A</div>
+              <div class="score-type">Company DBT</div>
+              <div class="industry-dbt">Industry DBT: N/A</div>
+            </div>
+          </div>
+
+          <!-- Derogatory Legal -->
+          <div class="slds-col slds-size_1-of-3 small-box">
+            <div class="section-title">Derogatory Legal</div>
+            <div class="score-box">
+              <div class="score-value">0</div>
+              <div class="score-type">Original Filings</div>
+            </div>
+          </div>
+
+          <!-- Fraud Alerts -->
+          <div class="slds-col slds-size_1-of-3 small-box">
+            <div class="section-title">Fraud Alerts</div>
+            <div class="score-box">
+              <div class="score-value">N/A</div>
+              <div class="score-type">High Risk Alerts</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </lightning-card>
+</template>

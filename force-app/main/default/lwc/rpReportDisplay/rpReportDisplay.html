@@ -3,4 +3,13 @@
   <p>Business ID: {businessId}</p>
   <p>Report Type: {reportType}</p>
   <p>Scoring Model: {scoringModel}</p>
+
+  <div class="slds-box">
+    <div if:true={isReportLoaded}>
+      <div class="report-container" lwc:dom="manual"></div>
+    </div>
+    <div if:false={isReportLoaded}>
+      <p>No report data available.</p>
+    </div>
+  </div>
 </template>

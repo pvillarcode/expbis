@@ -1,7 +1,36 @@
-.slds-card__body {
-  padding: 1rem;
+.slds-card {
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 0.25rem;
 }
 
-.slds-m-bottom_small {
-  margin-bottom: 0.75rem;
+.slds-card__header-title {
+  font-weight: 700;
+  color: #16325c;
+}
+
+.slds-text-title_caps {
+  font-size: 0.75rem;
+  color: #54698d;
+  letter-spacing: 0.0625em;
+  margin-bottom: 0.25rem;
+}
+
+.slds-form-element__control {
+  font-size: 1rem;
+}
+
+.slds-border-top {
+  border-top: 1px solid #d8dde6;
+}
+
+lightning-button.slds-m-top_small {
+  margin-top: 1rem;
+}
+
+@media (max-width: 64em) {
+  .slds-p-right_medium,
+  .slds-p-left_medium {
+    padding-right: 0;
+    padding-left: 0;
+  }
 }

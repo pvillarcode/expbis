@@ -1,89 +1,130 @@
 <template>
-  <lightning-card title="Pull Report" class="slds-p-around_large">
-    <div class="slds-grid slds-wrap slds-p-around_large">
-      <div class="slds-col slds-size_2-of-6 slds-large-size_2-of-6">
-        <h2 class="slds-text-heading_small">EXPERIAN SERVICES CORP</h2>
-        <lightning-button
-          label="Back"
-          variant="base"
-          class="slds-m-bottom_small"
-        ></lightning-button>
-        <p>475 ANTON BLVD<br />COSTA MESA, CA</p>
-        <div>
-          <h2>
-            Business owner 1
-            <lightning-button-icon
-              icon-name="utility:add"
-              alternative-text="Add"
-              class="slds-button_icon-border-filled"
-            ></lightning-button-icon>
-          </h2>
-          <p>No data provided</p>
-        </div>
-        <lightning-button
-          label="+ Add business owner"
-          variant="neutral"
-          class="slds-m-bottom_small"
-        ></lightning-button>
-        <div>
-          <h2>Other Info</h2>
-          <p>
-            BIN # <a href="https://example.com" target="_blank">798304266</a>
-          </p>
-        </div>
-      </div>
-      <div class="slds-col slds-size_4-of-6 slds-large-size_4-of-6">
-        <h2 class="slds-text-heading_small" id="dialog-heading-id-115">
-          Customize Report
-        </h2>
-        <lightning-combobox
-          name="select-report"
-          label="Select report"
-          value="DecisionIQ Credit"
-          options="{reportOptions}"
-          class="slds-m-bottom_small"
-        ></lightning-combobox>
-        <p>
-          DecisionIQ Credit is a configurable report option that will render an
-          automated credit decision, custom action and credit limit based on the
-          selected Scoring Model and Decision Policy.
-        </p>
-        <lightning-radio-group
-          name="scoringModel"
-          label="Select scoring model"
-          options="{scoringModelOptions}"
-          value="Intelliscore Plus"
-          class="slds-m-bottom_small"
-        ></lightning-radio-group>
-        <lightning-combobox
-          name="select-decision-policy"
-          label="Select decision policy"
-          options="{decisionPolicyOptions}"
-          placeholder="- Select -"
-          class="slds-m-bottom_small"
-        ></lightning-combobox>
-        <div class="slds-m-bottom_small">
-          <lightning-input
-            type="checkbox"
-            label="Use selected scoring model as default"
-          ></lightning-input>
-          <lightning-input
-            type="checkbox"
-            label="Use selected decision policy as default"
-          ></lightning-input>
-          <lightning-input
-            type="checkbox"
-            label="Use selected report as default"
-            checked
-          ></lightning-input>
-        </div>
-        <lightning-button
-          label="Pull Report"
-          variant="brand"
-          onclick="{handlePullReport}"
-          >></lightning-button
+  <div class="slds-grid slds-wrap slds-p-around_medium">
+    <!-- Company Information Section -->
+    <div
+      class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-right_medium"
+    >
+      <div class="slds-card slds-p-around_medium">
+        <header
+          class="slds-media slds-media_center slds-has-flexi-truncate slds-m-bottom_medium"
         >
+          <div class="slds-media__figure">
+            <lightning-icon
+              icon-name="standard:account"
+              alternative-text="Company"
+              size="small"
+            ></lightning-icon>
+          </div>
+          <div class="slds-media__body">
+            <h2
+              class="slds-card__header-title slds-text-heading_medium slds-truncate"
+            >
+              EXPERIAN INFORMATION SOLUTIONS INC
+            </h2>
+          </div>
+        </header>
+        <div class="slds-card__body">
+          <div class="slds-form-element slds-m-bottom_medium">
+            <span class="slds-form-element__label slds-text-title_caps"
+              >Address</span
+            >
+            <div class="slds-form-element__control">
+              <div class="slds-text-body_regular">
+                475 ANTON BLVD # C4 COSTA MESA, CA
+              </div>
+            </div>
+          </div>
+          <div class="slds-form-element slds-m-bottom_large">
+            <span class="slds-form-element__label slds-text-title_caps"
+              >BIN</span
+            >
+            <div class="slds-form-element__control">
+              <div class="slds-text-body_regular">#796744203</div>
+            </div>
+          </div>
+          <div class="slds-border-top slds-p-top_medium">
+            <lightning-button
+              label="Add business owner"
+              variant="neutral"
+              class="slds-m-top_small"
+            ></lightning-button>
+          </div>
+        </div>
       </div>
     </div>
-  </lightning-card>
+
+    <!-- Customize Report Section -->
+    <div
+      class="slds-col slds-size_1-of-1 slds-large-size_1-of-2 slds-p-left_medium"
+    >
+      <div class="slds-card slds-p-around_medium">
+        <header
+          class="slds-media slds-media_center slds-has-flexi-truncate slds-m-bottom_medium"
+        >
+          <div class="slds-media__figure">
+            <lightning-icon
+              icon-name="standard:report"
+              alternative-text="Report"
+              size="small"
+            ></lightning-icon>
+          </div>
+          <div class="slds-media__body">
+            <h2 class="slds-card__header-title slds-text-heading_medium">
+              Customize Report
+            </h2>
+          </div>
+        </header>
+        <div class="slds-card__body">
+          <lightning-combobox
+            name="reportSelect"
+            label="Select report"
+            value={value}
+            placeholder="Select Report"
+            options={reportOptions}
+            onchange={handleReportChange}
+            class="slds-m-bottom_medium"
+          ></lightning-combobox>
+
+          <p class="slds-text-body_regular slds-m-bottom_large">
+            {reportDescription}
+          </p>
+
+          <div class="slds-form-element slds-m-bottom_large">
+            <span class="slds-form-element__label slds-text-title_caps"
+              >Select scoring model</span
+            >
+            <div class="slds-form-element__control">
+              <lightning-radio-group
+                name="scoringModel"
+                options={scoringModelOptions}
+                value={selectedModel}
+                type="radio"
+              ></lightning-radio-group>
+            </div>
+          </div>
+
+          <div class="slds-form-element slds-m-bottom_large">
+            <span class="slds-form-element__label slds-text-title_caps"
+              >Set default report setting (optional)</span
+            >
+            <div class="slds-form-element__control">
+              <lightning-checkbox-group
+                options={defaultOptions}
+                value={selectedDefaultOptions}
+              ></lightning-checkbox-group>
+            </div>
+          </div>
+
+          <div class="slds-border-top slds-p-top_medium">
+            <lightning-button
+              label="Pull Report"
+              variant="brand"
+              class="slds-m-top_small"
+              onclick={handlePullReportClick}
+            ></lightning-button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 </template>

@@ -1,33 +1,54 @@
-import { LightningElement, api } from 'lwc';
+import { LightningElement, track } from "lwc";
 
-export default class RpReportSelection extends LightningElement {
-  @api businessId;
+export default class PullReport extends LightningElement {
+  @track value = "premier";
+  @track selectedModel = "intelliscore";
+  @track selectedDefaultOptions = ["useScoringModelDefault"];
+  @track reportDescription = "";
 
-  business = {
-    BIN: '798304266',
-    name: 'EXPERIAN SERVICES CORP',
-    address: '475 ANTON BLVD, COSTA MESA, CA',
+  reportOptions = [
+    { label: "Premier Profile", value: "premier" },
+    { label: "DecisionIQ Credit", value: "decisionIQ" }
+  ];
+
+  reportDescriptions = {
+    premier:
+      "The Premier Profile Report is our most comprehensive business report providing views of business payment performance, public record history, fraud check, and company background information.",
+    decisionIQ:
+      "The DecisionIQ Credit report provides detailed credit analysis and risk assessment to make informed business decisions."
   };
 
-  reportOptions = [{ label: 'DecisionIQ Credit', value: 'DecisionIQ Credit' }];
-
   scoringModelOptions = [
-    { label: 'Intelliscore Plus', value: 'Intelliscore Plus' },
-    { label: 'Intelliscore Plus Blended', value: 'Intelliscore Plus Blended' },
+    { label: "INTELLISCORE PLUS V2", value: "intelliscore" },
+    { label: "IPV3", value: "ipv3" },
+    { label: "IPV3ML", value: "ipv3ml" }
   ];
 
-  decisionPolicyOptions = [
-    { label: 'Policy 1', value: 'Policy1' },
-    { label: 'Policy 2', value: 'Policy2' },
+  defaultOptions = [
+    {
+      label: "Use selected scoring model as default",
+      value: "useScoringModelDefault"
+    },
+    { label: "Use selected report as default", value: "useReportDefault" }
   ];
 
-  handlePullReport() {
-    const event = new CustomEvent('reportselected', {
-      detail: {
-        reportType: 'exampleReportType',
-        scoringModel: 'exampleScoringModel',
-      },
-    });
+  connectedCallback() {
+    this.updateReportDescription(this.value);
+  }
+
+  handleReportChange(event) {
+    this.value = event.detail.value;
+    this.updateReportDescription(this.value);
+  }
+
+  updateReportDescription(reportKey) {
+    this.reportDescription =
+      this.reportDescriptions[reportKey] ||
+      "No description available for this report.";
+  }
+
+  handlePullReportClick() {
+    const event = new CustomEvent("pullreport");
     this.dispatchEvent(event);
   }
 }

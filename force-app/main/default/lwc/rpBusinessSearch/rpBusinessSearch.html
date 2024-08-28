@@ -6,125 +6,144 @@
       variant="brand"
     ></lightning-spinner>
   </div>
-  <div class="slds-p-around_xx-small">
-    <lightning-card title="Business Information" icon-name="standard:record">
-      <div class="slds-var-p-around_medium">
-        <form class="slds-form_stacked custom-form">
-          <div class="slds-scrollable_y form-container">
-            <lightning-radio-group
-              name="searchType"
-              label="Search by"
-              options={searchOptions}
-              value={searchType}
-              onchange={handleSearchTypeChange}
-            >
-            </lightning-radio-group>
-            <lightning-input
-              label="BIN"
-              name="bin"
-              value={searchCriteria.bin}
-              onchange={handleInputChange}
-              data-id="bin"
-            ></lightning-input>
-            <lightning-input
-              label="Business name"
-              required
-              name="businessName"
-              value={searchCriteria.businessName}
-              onchange={handleInputChange}
-              data-id="businessName"
-            ></lightning-input>
-            <lightning-input
-              label="Address"
-              name="address"
-              value={searchCriteria.address}
-              onchange={handleInputChange}
-              data-id="address"
-            ></lightning-input>
 
-            <lightning-layout multiple-rows="true">
-              <lightning-layout-item size="4">
-                <lightning-input
-                  label="City"
-                  required
-                  name="city"
-                  value={searchCriteria.city}
-                  onchange={handleInputChange}
-                  data-id="city"
-                ></lightning-input>
-              </lightning-layout-item>
-              <lightning-layout-item size="4">
-                <lightning-input
-                  label="State"
-                  required
-                  name="state"
-                  value={searchCriteria.state}
-                  onchange={handleInputChange}
-                  data-id="state"
-                ></lightning-input>
-              </lightning-layout-item>
-              <lightning-layout-item size="4">
-                <lightning-input
-                  label="Zip"
-                  name="zip"
-                  value={searchCriteria.zip}
-                  onchange={handleInputChange}
-                  data-id="zip"
-                ></lightning-input>
-              </lightning-layout-item>
-            </lightning-layout>
+  <div class="slds-card slds-m-around_medium">
+    <div class="slds-card__header slds-grid">
+      <header class="slds-media slds-media_center slds-has-flexi-truncate">
+        <div class="slds-media__figure">
+          <lightning-icon
+            icon-name="standard:record"
+            size="small"
+          ></lightning-icon>
+        </div>
+        <div class="slds-media__body">
+          <h2 class="slds-card__header-title slds-truncate">
+            Business Information
+          </h2>
+        </div>
+      </header>
+    </div>
+    <div class="slds-card__body">
+      <form class="slds-form slds-form_stacked custom-form">
+        <div class="slds-scrollable_y form-container">
+          <lightning-radio-group
+            name="searchType"
+            label="Search by"
+            options={searchOptions}
+            value={searchType}
+            onchange={handleSearchTypeChange}
+            class="slds-m-bottom_medium"
+          >
+          </lightning-radio-group>
 
-            <lightning-input
-              label="Country"
-              name="country"
-              value={searchCriteria.country}
-              onchange={handleInputChange}
-              data-id="country"
-            ></lightning-input>
-            <lightning-input
-              label="Phone"
-              name="phone"
-              value={searchCriteria.phone}
-              onchange={handleInputChange}
-              data-id="phone"
-            ></lightning-input>
-            <lightning-input
-              label="Federal Tax ID"
-              name="taxId"
-              value={searchCriteria.taxId}
-              onchange={handleInputChange}
-              data-id="taxId"
-            ></lightning-input>
-            <lightning-input
-              label="Reference"
-              name="reference"
-              value={searchCriteria.reference}
-              onchange={handleInputChange}
-              data-id="reference"
-            ></lightning-input>
+          <lightning-input
+            label="BIN"
+            name="bin"
+            value={searchCriteria.bin}
+            onchange={handleInputChange}
+            data-id="bin"
+            class="slds-m-bottom_small"
+          ></lightning-input>
+          <lightning-input
+            label="Business name"
+            required
+            name="businessName"
+            value={searchCriteria.businessName}
+            onchange={handleInputChange}
+            data-id="businessName"
+            class="slds-m-bottom_small"
+          ></lightning-input>
+          <lightning-input
+            label="Address"
+            name="address"
+            value={searchCriteria.address}
+            onchange={handleInputChange}
+            data-id="address"
+            class="slds-m-bottom_small"
+          ></lightning-input>
+
+          <div class="slds-grid slds-gutters slds-m-bottom_small">
+            <div class="slds-col">
+              <lightning-input
+                label="City"
+                required
+                name="city"
+                value={searchCriteria.city}
+                onchange={handleInputChange}
+                data-id="city"
+              ></lightning-input>
+            </div>
+            <div class="slds-col">
+              <lightning-input
+                label="State"
+                required
+                name="state"
+                value={searchCriteria.state}
+                onchange={handleInputChange}
+                data-id="state"
+              ></lightning-input>
+            </div>
+            <div class="slds-col">
+              <lightning-input
+                label="Zip"
+                name="zip"
+                value={searchCriteria.zip}
+                onchange={handleInputChange}
+                data-id="zip"
+              ></lightning-input>
+            </div>
           </div>
-          <div class="button-container">
-            <lightning-layout class="button-layout">
-              <lightning-layout-item>
-                <lightning-button
-                  variant="brand"
-                  label="Search"
-                  title="Search"
-                  onclick={handleSearch}
-                ></lightning-button>
-              </lightning-layout-item>
-              <lightning-layout-item>
-                <lightning-button
-                  class="slds-button slds-m-left_x-small"
-                  label="Clear search"
-                  onclick={handleClear}
-                  variant="neutral"
-                ></lightning-button>
-              </lightning-layout-item>
-            </lightning-layout>
-          </div>
-        </form>
+
+          <lightning-input
+            label="Country"
+            name="country"
+            value={searchCriteria.country}
+            onchange={handleInputChange}
+            data-id="country"
+            class="slds-m-bottom_small"
+          ></lightning-input>
+          <lightning-input
+            label="Phone"
+            name="phone"
+            value={searchCriteria.phone}
+            onchange={handleInputChange}
+            data-id="phone"
+            class="slds-m-bottom_small"
+          ></lightning-input>
+          <lightning-input
+            label="Federal Tax ID"
+            name="taxId"
+            value={searchCriteria.taxId}
+            onchange={handleInputChange}
+            data-id="taxId"
+            class="slds-m-bottom_small"
+          ></lightning-input>
+          <lightning-input
+            label="Reference"
+            name="reference"
+            value={searchCriteria.reference}
+            onchange={handleInputChange}
+            data-id="reference"
+            class="slds-m-bottom_small"
+          ></lightning-input>
+        </div>
+      </form>
+    </div>
+    <footer class="slds-card__footer">
+      <div class="button-container">
+        <lightning-button
+          variant="brand"
+          label="Search"
+          title="Search"
+          onclick={handleSearch}
+          class="slds-m-right_x-small"
+        ></lightning-button>
+        <lightning-button
+          label="Clear search"
+          onclick={handleClear}
+          variant="neutral"
+        ></lightning-button>
       </div>
-    </lightning-card>
+    </footer>
   </div>
 </template>

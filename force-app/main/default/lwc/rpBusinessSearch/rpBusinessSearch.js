@@ -34,8 +34,8 @@ export default class RpBusinessSearch extends LightningElement {
   }
 
   handleSearch() {
-    this.isLoading = true;
     if (this.validateFields()) {
+      this.isLoading = true;
       getLOS({
         searchCriteria: this.searchCriteria
       })
