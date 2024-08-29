@@ -5,71 +5,6 @@ public with sharing class PullReport {
   private static final Integer TIMEOUT = 120000;
 
   @AuraEnabled
-  public static String getReport() {
-    Experian_Configuration__c setting = ExperianApiService.getBIQConfig();
-    try {
-      PullReportReqWrapper reqWrapper = new PullReportReqWrapper();
-
-      reqWrapper.subcode = DEFAULT_SUBCODE;
-      reqWrapper.bin = '722799117';
-
-      String pdfRerportData = getPDFreport(reqWrapper);
-      String jsonReportData = getJsonReport(reqWrapper);
-
-      return pdfRerportData;
-    } catch (Exception e) {
-      System.debug('Error: ' + e.getMessage());
-    }
-    return null;
-  }
-
-  @AuraEnabled
-  public static Id savePDFToSalesforce(String base64Data, String fileName) {
-    ContentVersion cv = new ContentVersion();
-    cv.VersionData = EncodingUtil.base64Decode(base64Data);
-    cv.Title = fileName;
-    cv.PathOnClient = fileName + '.pdf';
-    insert cv;
-
-    return cv.Id;
-  }
-
-  @AuraEnabled
-  public static Id saveExperianInformation(String jsonData) {
-    Map<String, Object> parsedData = (Map<String, Object>) JSON.deserializeUntyped(
-      jsonData
-    );
-    Map<String, Object> results = (Map<String, Object>) parsedData.get(
-      'results'
-    );
-
-    Id accountId = createAccount(results);
-    return accountId;
-  }
-
-  private static Id createAccount(Map<String, Object> results) {
-    Map<String, Object> businessHeader = (Map<String, Object>) results.get(
-      'businessHeader'
-    );
-    Map<String, Object> address = (Map<String, Object>) businessHeader.get(
-      'address'
-    );
-
-    Account newAccount = new Account(
-      Name = (String) businessHeader.get('businessName'),
-      BillingStreet = (String) address.get('street'),
-      BillingCity = (String) address.get('city'),
-      BillingState = (String) address.get('state'),
-      BillingPostalCode = (String) address.get('zip'),
-      Phone = (String) businessHeader.get('phone'),
-      Website = (String) businessHeader.get('websiteUrl')
-    );
-
-    insert newAccount;
-    return newAccount.Id;
-  }
-
-  @AuraEnabled
   public static String getJSONReport(PullReportReqWrapper reqWrapper2) {
     Experian_Configuration__c setting = ExperianApiService.getBIQConfig();
 
@@ -134,5 +69,111 @@ public with sharing class PullReport {
       System.debug('StatusCode: ' + res.getStatusCode());
       return 'Error';
     }
+  }
+
+  @AuraEnabled
+  public static Id savePDFToSalesforce(String base64Data, String fileName) {
+    ContentVersion cv = new ContentVersion();
+    cv.VersionData = EncodingUtil.base64Decode(base64Data);
+    cv.Title = fileName;
+    cv.PathOnClient = fileName + '.pdf';
+    insert cv;
+
+    return cv.Id;
+  }
+
+  @AuraEnabled
+  public static Id saveExperianInformation(String jsonData) {
+    try {
+      Map<String, Object> parsedData = (Map<String, Object>) JSON.deserializeUntyped(
+        jsonData
+      );
+      Map<String, Object> results = (Map<String, Object>) parsedData.get(
+        'results'
+      );
+
+      Id accountId = findOrcreateAccount(results);
+      Id business = getOrUpdateBusiness(results, accountId);
+      System.debug('Business: ' + business);
+      //TODO update Related records
+
+      return accountId;
+    } catch (Exception e) {
+      throw new AuraHandledException(
+        'Error saving Experian Business Information: ' + e.getMessage()
+      );
+    }
+  }
+
+  private static Id findOrcreateAccount(Map<String, Object> results) {
+    Map<String, Object> businessHeader = (Map<String, Object>) results.get(
+      'businessHeader'
+    );
+    Map<String, Object> address = (Map<String, Object>) businessHeader.get(
+      'address'
+    );
+
+    String accountName = (String) businessHeader.get('businessName');
+
+    List<Account> existingAccounts = [
+      SELECT Id
+      FROM Account
+      WHERE Name = :accountName
+      LIMIT 1
+    ];
+
+    if (!existingAccounts.isEmpty()) {
+      return existingAccounts[0].Id;
+    } else {
+      Account newAccount = new Account(
+        Name = accountName,
+        BillingStreet = (String) address.get('street'),
+        BillingCity = (String) address.get('city'),
+        BillingState = (String) address.get('state'),
+        BillingPostalCode = (String) address.get('zip'),
+        Phone = (String) businessHeader.get('phone'),
+        Website = (String) businessHeader.get('websiteUrl')
+      );
+      insert newAccount;
+      return newAccount.Id;
+    }
+  }
+
+  private static Id getOrUpdateBusiness(
+    Map<String, Object> results,
+    Id accountId
+  ) {
+    List<Experian_Business__c> existingBusinesses = [
+      SELECT Id
+      FROM Experian_Business__c
+      WHERE Account__c = :accountId
+      LIMIT 1
+    ];
+
+    Experian_Business__c business;
+
+    if (!existingBusinesses.isEmpty()) {
+      business = existingBusinesses[0];
+    } else {
+      business = new Experian_Business__c(Account__c = accountId);
+    }
+
+    Map<String, Object> businessHeader = (Map<String, Object>) results.get(
+      'businessHeader'
+    );
+
+    Map<String, Object> address = (Map<String, Object>) businessHeader.get(
+      'address'
+    );
+
+    business.BIN__c = (String) businessHeader.get('bin');
+    business.Name = (String) businessHeader.get('businessName');
+    business.Business_Phone__c = (String) businessHeader.get('phone');
+    business.City__c = (String) address.get('city');
+    business.State__c = (String) address.get('state');
+    business.Zip__c = (String) address.get('zip');
+    System.debug('Business: ' + business);
+    upsert business;
+    return business.Id;
   }
 }

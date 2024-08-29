@@ -42,7 +42,7 @@ export default class RpPullReportTab extends LightningElement {
     this.reportType = event.detail.reportType;
     this.scoringModel = event.detail.scoringModel;
     this.currentPage = "rp-report-display";
-    this.fetchReport();
+    //this.fetchReport();
   }
 
   handlePullReport() {
