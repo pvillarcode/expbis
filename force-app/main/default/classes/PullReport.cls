@@ -5,13 +5,19 @@ public with sharing class PullReport {
   private static final Integer TIMEOUT = 120000;
 
   @AuraEnabled
-  public static String getJSONReport(PullReportReqWrapper reqWrapper2) {
+  public static String getJSONReport(String jsonData) {
+    System.debug('getJSON Report');
+    System.debug(jsonData);
+    Map<String, Object> businessMap = (Map<String, Object>) JSON.deserializeUntyped(
+      jsonData
+    );
+
     Experian_Configuration__c setting = ExperianApiService.getBIQConfig();
 
     PullReportReqWrapper reqWrapper = new PullReportReqWrapper();
 
     reqWrapper.subcode = DEFAULT_SUBCODE;
-    reqWrapper.bin = '988793145';
+    reqWrapper.bin = (String) businessMap.get('BIN');
 
     HttpRequest req = new HttpRequest();
     req.setMethod('POST');
@@ -38,13 +44,19 @@ public with sharing class PullReport {
   }
 
   @AuraEnabled
-  public static String getPDFReport(PullReportReqWrapper reqWrapper2) {
+  public static String getPDFReport(String jsonData) {
+    System.debug('getJSON Report');
+    System.debug(jsonData);
+    Map<String, Object> businessMap = (Map<String, Object>) JSON.deserializeUntyped(
+      jsonData
+    );
+
     Experian_Configuration__c setting = ExperianApiService.getBIQConfig();
 
     PullReportReqWrapper reqWrapper = new PullReportReqWrapper();
 
     reqWrapper.subcode = DEFAULT_SUBCODE;
-    reqWrapper.bin = '988793145';
+    reqWrapper.bin = (String) businessMap.get('BIN');
 
     HttpRequest req = new HttpRequest();
     req.setMethod('POST');
@@ -143,37 +155,196 @@ public with sharing class PullReport {
     Map<String, Object> results,
     Id accountId
   ) {
-    List<Experian_Business__c> existingBusinesses = [
-      SELECT Id
-      FROM Experian_Business__c
-      WHERE Account__c = :accountId
-      LIMIT 1
-    ];
+    try {
+      List<Experian_Business__c> existingBusinesses = [
+        SELECT Id
+        FROM Experian_Business__c
+        WHERE Account__c = :accountId
+        LIMIT 1
+      ];
 
-    Experian_Business__c business;
+      Experian_Business__c business;
 
-    if (!existingBusinesses.isEmpty()) {
-      business = existingBusinesses[0];
-    } else {
-      business = new Experian_Business__c(Account__c = accountId);
+      if (!existingBusinesses.isEmpty()) {
+        business = existingBusinesses[0];
+      } else {
+        business = new Experian_Business__c(Account__c = accountId);
+      }
+
+      Map<String, Object> businessHeader = (Map<String, Object>) results.get(
+        'businessHeader'
+      );
+
+      Map<String, Object> address = (Map<String, Object>) businessHeader.get(
+        'address'
+      );
+
+      Map<String, Object> businessFacts = (Map<String, Object>) results.get(
+        'businessFacts'
+      );
+
+      Map<String, Object> scoreInformation = (Map<String, Object>) results.get(
+        'scoreInformation'
+      );
+
+      business.BIN__c = (String) businessHeader.get('bin');
+      business.Name = (String) businessHeader.get('businessName');
+      business.Business_Phone__c = (String) businessHeader.get('phone');
+      business.City__c = (String) address.get('city');
+      business.State__c = (String) address.get('state');
+      business.Zip__c = (String) address.get('zip');
+
+      business.bf_business_type__c = (String) businessFacts.get('businessType');
+      business.bf_Date_of_Incorporation__c = (String) businessFacts.get(
+        'dateOfIncorporation'
+      );
+      business.bf_File_Established_Date__c = (String) businessFacts.get(
+        'fileEstablishedDate'
+      );
+      business.bf_Years_In_Business__c = getSafeString(
+        businessFacts,
+        'yearsInBusiness'
+      );
+
+      if (scoreInformation != null) {
+        // FSR Score information
+        Map<String, Object> fsrScore = (Map<String, Object>) scoreInformation.get(
+          'fsrScore'
+        );
+        if (fsrScore != null) {
+          business.FSR_Score__c = getSafeString(fsrScore, 'score');
+          business.FSR_Model_Code__c = getSafeString(fsrScore, 'modelCode');
+          business.FSR_Model_Title__c = getSafeString(fsrScore, 'modelTitle');
+          business.FSR_Dispute_Indicator__c = getSafeBoolean(
+            fsrScore,
+            'customerDisputeIndicator'
+          );
+
+          // Accessing nested RiskClass
+          Map<String, Object> riskClass = (Map<String, Object>) fsrScore.get(
+            'riskClass'
+          );
+          if (riskClass != null) {
+            business.FSR_Risk_Code__c = getSafeString(riskClass, 'code');
+            business.FSR_Risk_Definition__c = getSafeString(
+              riskClass,
+              'definition'
+            );
+          }
+        } else {
+          System.debug('FSR Score is null');
+        }
+
+        Map<String, Object> commercialScore = (Map<String, Object>) scoreInformation.get(
+          'commercialScore'
+        );
+        if (commercialScore != null) {
+          business.Commercial_Score__c = getSafeString(
+            commercialScore,
+            'score'
+          );
+          business.Commercial_Model_Code__c = getSafeString(
+            commercialScore,
+            'modelCode'
+          );
+          business.Commercial_Model_Title__c = getSafeString(
+            commercialScore,
+            'modelTitle'
+          );
+          business.Commercial_Credit_Limit_Recommendation__c = getSafeString(
+            commercialScore,
+            'recommendedCreditLimitAmount'
+          );
+          business.Commercial_Dispute_Indicator__c = getSafeBoolean(
+            commercialScore,
+            'customerDisputeIndicator'
+          );
+
+          // Accessing nested RiskClass
+          Map<String, Object> riskClass = (Map<String, Object>) commercialScore.get(
+            'riskClass'
+          );
+          if (riskClass != null) {
+            business.Commercial_Risk_Code__c = getSafeString(riskClass, 'code');
+            business.Commercial_Risk_Definition__c = getSafeString(
+              riskClass,
+              'definition'
+            );
+          }
+        } else {
+          System.debug('Commercial Score is null');
+        }
+      } else {
+        System.debug('Score Information is null');
+      }
+
+      System.debug('Business: ' + business);
+      upsert business;
+      return business.Id;
+    } catch (Exception e) {
+      System.debug('Error message: ' + e.getMessage());
+      System.debug('Stack trace: ' + e.getStackTraceString());
+      System.debug('Line number: ' + e.getLineNumber());
+      throw new AuraHandledException(
+        'Error saving Experian Business Information: ' + e.getMessage()
+      );
     }
+  }
 
-    Map<String, Object> businessHeader = (Map<String, Object>) results.get(
-      'businessHeader'
-    );
+  // Helper methods for safe attribute access
+  private static String getSafeString(Map<String, Object> data, String key) {
+    Object value = data.get(key);
+    return value != null ? String.valueOf(value) : null;
+  }
 
-    Map<String, Object> address = (Map<String, Object>) businessHeader.get(
-      'address'
-    );
+  private static Integer getSafeInteger(Map<String, Object> data, String key) {
+    Object value = data.get(key);
+    return value != null ? Integer.valueOf(value) : null;
+  }
 
-    business.BIN__c = (String) businessHeader.get('bin');
-    business.Name = (String) businessHeader.get('businessName');
-    business.Business_Phone__c = (String) businessHeader.get('phone');
-    business.City__c = (String) address.get('city');
-    business.State__c = (String) address.get('state');
-    business.Zip__c = (String) address.get('zip');
-    System.debug('Business: ' + business);
-    upsert business;
-    return business.Id;
+  private static Boolean getSafeBoolean(Map<String, Object> data, String key) {
+    Object value = data.get(key);
+    return value != null ? Boolean.valueOf(value) : false;
+  }
+
+  private static Date getSafeDate(Map<String, Object> data, String key) {
+    String dateStr = getSafeString(data, key);
+    return String.isNotBlank(dateStr) ? Date.valueOf(dateStr) : null;
+  }
+
+  // Method to safely get nested values
+  private static Object getNestedValue(
+    Map<String, Object> data,
+    String[] keys
+  ) {
+    Object current = data;
+    for (String key : keys) {
+      if (current instanceof Map<String, Object>) {
+        current = ((Map<String, Object>) current).get(key);
+        if (current == null) {
+          return null;
+        }
+      } else {
+        return null;
+      }
+    }
+    return current;
+  }
+
+  // Convenience methods for nested values
+  private static String getNestedString(
+    Map<String, Object> data,
+    String[] keys
+  ) {
+    Object value = getNestedValue(data, keys);
+    return value != null ? String.valueOf(value) : null;
+  }
+
+  private static Integer getNestedInteger(
+    Map<String, Object> data,
+    String[] keys
+  ) {
+    Object value = getNestedValue(data, keys);
+    return value != null ? Integer.valueOf(value) : null;
   }
 }

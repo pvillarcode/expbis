@@ -1,10 +1,11 @@
-import { LightningElement, track } from "lwc";
+import { LightningElement, track, api } from "lwc";
 
 export default class PullReport extends LightningElement {
   @track value = "premier";
   @track selectedModel = "intelliscore";
   @track selectedDefaultOptions = ["useScoringModelDefault"];
   @track reportDescription = "";
+  @api loading = false;
 
   reportOptions = [
     { label: "Premier Profile", value: "premier" },

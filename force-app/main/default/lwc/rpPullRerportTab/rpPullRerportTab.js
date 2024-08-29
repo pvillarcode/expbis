@@ -3,6 +3,7 @@ import getPDFReport from "@salesforce/apex/PullReport.getPDFReport";
 import getJSONReport from "@salesforce/apex/PullReport.getJSONReport";
 import savePDFToSalesforce from "@salesforce/apex/PullReport.savePDFToSalesforce";
 import saveExperianInformation from "@salesforce/apex/PullReport.saveExperianInformation";
+import { ShowToastEvent } from "lightning/platformShowToastEvent";
 
 export default class RpPullReportTab extends LightningElement {
   @track currentPage = "rp-business-search";
@@ -12,6 +13,7 @@ export default class RpPullReportTab extends LightningElement {
   @track businesses = [];
   @track selectedBusiness;
   @track report;
+  @track isLoading;
 
   get isBussinessSearch() {
     return this.currentPage === "rp-business-search";
@@ -46,21 +48,21 @@ export default class RpPullReportTab extends LightningElement {
   }
 
   handlePullReport() {
-    this.currentPage = "rp-report-display";
-    this.handleGetReport();
+    //this.currentPage = "rp-report-display";
+    console.log("Pulling report for businessId:", this.selectedBusiness);
+    const jsonBusiness = { jsonData: JSON.stringify(this.selectedBusiness) };
+    this.handleGetReport(jsonBusiness);
   }
 
-  async handleGetReport() {
+  async handleGetReport(jsonBusiness) {
     try {
+      this.isLoading = true;
       // Fetch the report using the existing getReport method
 
       const [pdfResult, jsonResult] = await Promise.all([
-        getPDFReport(),
-        getJSONReport()
+        getPDFReport(jsonBusiness),
+        getJSONReport(jsonBusiness)
       ]);
-
-      const result = await getPDFReport();
-      console.log("reportData:", result);
 
       // Assuming the result is JSON containing a base64 encoded PDF
       const jsonPDF = JSON.parse(pdfResult);
@@ -95,19 +97,21 @@ export default class RpPullReportTab extends LightningElement {
       });
 
       console.log("Saved to Salesforce with ID: ", experianBusinessId);
+      this.isLoading = false;
+      this.currentPage = "rp-report-display";
     } catch (error) {
+      this.showToast("Error getting PDF report", error.body.message, "error");
       console.error("Error handling PDF:", error);
+      this.isLoading = false;
     }
   }
 
-  fetchReport() {
-    getPDFReport()
-      .then((result) => {
-        console.log("reportHtml:", result);
-        this.report = result;
-      })
-      .catch((error) => {
-        console.error("Error fetching report:", error);
-      });
+  showToast(title, message, variant) {
+    const event = new ShowToastEvent({
+      title: title,
+      message: message,
+      variant: variant
+    });
+    this.dispatchEvent(event);
   }
 }

@@ -18,6 +18,7 @@
       <template if:true={isReportSelection}>
         <c-rp-report-selection
           business={selectedBusiness}
+          loading={isLoading}
           onreportselected={handleReportSelected}
           onpullreport={handlePullReport}
         ></c-rp-report-selection>
