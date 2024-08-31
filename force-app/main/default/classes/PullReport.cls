@@ -82,16 +82,37 @@ public with sharing class PullReport {
       return 'Error';
     }
   }
-
   @AuraEnabled
-  public static Id savePDFToSalesforce(String base64Data, String fileName) {
+  public static Id savePDFToSalesforce(
+    String base64Data,
+    String fileName,
+    Id customObjectId
+  ) {
+    if (
+      String.isBlank(base64Data) ||
+      String.isBlank(fileName) ||
+      customObjectId == null
+    ) {
+      throw new AuraHandledException(
+        'Invalid input: base64Data, fileName, and customObjectId are required.'
+      );
+    }
+
     ContentVersion cv = new ContentVersion();
     cv.VersionData = EncodingUtil.base64Decode(base64Data);
     cv.Title = fileName;
     cv.PathOnClient = fileName + '.pdf';
     insert cv;
 
-    return cv.Id;
+    cv = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
+
+    ContentDocumentLink cdl = new ContentDocumentLink();
+    cdl.ContentDocumentId = cv.ContentDocumentId;
+    cdl.LinkedEntityId = customObjectId;
+    cdl.ShareType = 'V';
+    insert cdl;
+
+    return cv.ContentDocumentId;
   }
 
   @AuraEnabled
@@ -105,11 +126,11 @@ public with sharing class PullReport {
       );
 
       Id accountId = findOrcreateAccount(results);
-      Id business = getOrUpdateBusiness(results, accountId);
-      System.debug('Business: ' + business);
+      Id businessId = getOrUpdateBusiness(results, accountId);
+      System.debug('Business: ' + businessId);
       //TODO update Related records
 
-      return accountId;
+      return businessId;
     } catch (Exception e) {
       throw new AuraHandledException(
         'Error saving Experian Business Information: ' + e.getMessage()

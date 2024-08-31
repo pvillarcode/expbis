@@ -135,19 +135,25 @@ export default class RpPullReportTab extends NavigationMixin(LightningElement) {
       const url = window.URL.createObjectURL(blob);
       window.open(url, "_blank");
 
-      const fileName = "PremierProfile_" + new Date().getTime();
-      const contentDocumentId = await savePDFToSalesforce({
-        base64Data: base64PDF,
-        fileName: fileName,
-        customObjectId: this.recordId
-      });
-      console.log("Saved to Salesforce with ID: ", contentDocumentId);
-
       const experianBusinessId = await saveExperianInformation({
         jsonData: jsonResult
       });
-
       console.log("Saved to Salesforce with ID: ", experianBusinessId);
+
+      if (experianBusinessId) {
+        const fileName = "PremierProfile_" + new Date().getTime();
+        try {
+          const contentDocumentId = await savePDFToSalesforce({
+            base64Data: base64PDF,
+            fileName: fileName,
+            customObjectId: experianBusinessId
+          });
+          console.log("Saved to Salesforce with ID: ", contentDocumentId);
+        } catch (error) {
+          console.error("Error saving PDF to Salesforce:", error);
+          this.showToast("Error", "Failed to save PDF to Salesforce", "error");
+        }
+      }
       this.isLoading = false;
       this.currentPage = "rp-report-display";
       this.showToast(

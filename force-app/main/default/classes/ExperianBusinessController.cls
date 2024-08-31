@@ -43,4 +43,32 @@ public with sharing class ExperianBusinessController {
       WHERE Account__c = :accountId
     ];
   }
+
+  @AuraEnabled(cacheable=true)
+  public static List<ContentDocumentLink> getExperianReports(
+    Id accountId,
+    Integer pageSize,
+    Integer pageNumber
+  ) {
+    System.debug(accountId);
+    Id businessId = [
+      SELECT Id
+      FROM Experian_Business__c
+      WHERE Account__c = :accountId
+      LIMIT 1
+    ]
+    .Id;
+    Integer offset = (pageNumber - 1) * pageSize;
+    return [
+      SELECT
+        ContentDocument.Title,
+        ContentDocument.CreatedDate,
+        ContentDocument.ContentSize
+      FROM ContentDocumentLink
+      WHERE LinkedEntityId = :businessId
+      ORDER BY ContentDocument.CreatedDate DESC
+      LIMIT :pageSize
+      OFFSET :offset
+    ];
+  }
 }
