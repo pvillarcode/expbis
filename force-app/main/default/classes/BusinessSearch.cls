@@ -146,6 +146,23 @@ public with sharing class BusinessSearch {
     return results;
   }
 
+  @AuraEnabled(cacheable=true)
+  public static Account getAccountDetails(Id accountId) {
+    return [
+      SELECT
+        Id,
+        Name,
+        BillingStreet,
+        BillingCity,
+        BillingState,
+        BillingPostalCode,
+        BillingCountry,
+        Phone
+      FROM Account
+      WHERE Id = :accountId
+    ];
+  }
+
   public class BusinessResult {
     @AuraEnabled
     public String bin;

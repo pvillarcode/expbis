@@ -1,11 +1,14 @@
-import { LightningElement, track } from "lwc";
+import { LightningElement, track, wire } from "lwc";
+import { NavigationMixin } from "lightning/navigation";
 import getPDFReport from "@salesforce/apex/PullReport.getPDFReport";
 import getJSONReport from "@salesforce/apex/PullReport.getJSONReport";
 import savePDFToSalesforce from "@salesforce/apex/PullReport.savePDFToSalesforce";
 import saveExperianInformation from "@salesforce/apex/PullReport.saveExperianInformation";
+import getAccountDetails from "@salesforce/apex/BusinessSearch.getAccountDetails";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
+import { CurrentPageReference } from "lightning/navigation";
 
-export default class RpPullReportTab extends LightningElement {
+export default class RpPullReportTab extends NavigationMixin(LightningElement) {
   @track currentPage = "rp-business-search";
   @track businessId;
   @track reportType;
@@ -14,6 +17,57 @@ export default class RpPullReportTab extends LightningElement {
   @track selectedBusiness;
   @track report;
   @track isLoading;
+  @track accountData;
+  @track searchCriteria = {
+    bin: "",
+    businessName: "",
+    address: "",
+    city: "",
+    state: "",
+    zip: "",
+    country: "US",
+    phone: "",
+    taxId: "",
+    reference: ""
+  };
+
+  @wire(CurrentPageReference)
+  getStateParameters(currentPageReference) {
+    if (currentPageReference && currentPageReference.state.c__recordId) {
+      this.accountId = currentPageReference.state.c__recordId;
+      this.loadAccountData();
+    }
+  }
+
+  loadAccountData() {
+    this.handleClearSearch();
+    getAccountDetails({ accountId: this.accountId })
+      .then((result) => {
+        this.accountData = result;
+        this.populateBusinessSearch();
+      })
+      .catch((error) => {
+        console.error("Error loading account data", error);
+        this.showToast("Error", "Failed to load account data", "error");
+      });
+  }
+
+  populateBusinessSearch() {
+    if (this.accountData) {
+      this.searchCriteria = {
+        businessName: this.accountData.Name,
+        address: this.accountData.BillingStreet,
+        city: this.accountData.BillingCity,
+        state: this.accountData.BillingState,
+        zip: this.accountData.BillingPostalCode,
+        country: this.accountData.BillingCountry || "US",
+        phone: this.accountData.Phone,
+        bin: "",
+        taxId: "",
+        reference: ""
+      };
+    }
+  }
 
   get isBussinessSearch() {
     return this.currentPage === "rp-business-search";
@@ -27,6 +81,14 @@ export default class RpPullReportTab extends LightningElement {
     return this.currentPage === "rp-report-display";
   }
 
+  handleClearSearch() {
+    this.currentPage = "rp-business-search";
+    this.searchCriteria = {};
+    this.businesses = [];
+    console.log("handle Clear Search");
+    // Reset other variables as needed
+  }
+
   handleBusinessSelect(event) {
     this.selectedBusiness = event.detail;
     console.log("selectedBusiness in reportab js:", this.selectedBusiness);
@@ -37,18 +99,15 @@ export default class RpPullReportTab extends LightningElement {
     console.log("on handle business search");
     this.businesses = event.detail;
     console.log("businesses:", this.businesses);
-    //this.currentPage = 'rp-report-selection';
   }
 
   handleReportSelected(event) {
     this.reportType = event.detail.reportType;
     this.scoringModel = event.detail.scoringModel;
     this.currentPage = "rp-report-display";
-    //this.fetchReport();
   }
 
   handlePullReport() {
-    //this.currentPage = "rp-report-display";
     console.log("Pulling report for businessId:", this.selectedBusiness);
     const jsonBusiness = { jsonData: JSON.stringify(this.selectedBusiness) };
     this.handleGetReport(jsonBusiness);
@@ -57,18 +116,14 @@ export default class RpPullReportTab extends LightningElement {
   async handleGetReport(jsonBusiness) {
     try {
       this.isLoading = true;
-      // Fetch the report using the existing getReport method
-
       const [pdfResult, jsonResult] = await Promise.all([
         getPDFReport(jsonBusiness),
         getJSONReport(jsonBusiness)
       ]);
 
-      // Assuming the result is JSON containing a base64 encoded PDF
       const jsonPDF = JSON.parse(pdfResult);
       const base64PDF = jsonPDF.results;
 
-      // Create a Blob from the Base64 encoded string
       const byteCharacters = atob(base64PDF);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -77,13 +132,9 @@ export default class RpPullReportTab extends LightningElement {
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: "application/pdf" });
 
-      // Create a URL for the Blob
       const url = window.URL.createObjectURL(blob);
-
-      // Open the PDF in a new tab
       window.open(url, "_blank");
 
-      // Save to Salesforce and link to Custom Object
       const fileName = "PremierProfile_" + new Date().getTime();
       const contentDocumentId = await savePDFToSalesforce({
         base64Data: base64PDF,
@@ -99,8 +150,23 @@ export default class RpPullReportTab extends LightningElement {
       console.log("Saved to Salesforce with ID: ", experianBusinessId);
       this.isLoading = false;
       this.currentPage = "rp-report-display";
+      this.showToast(
+        "Success",
+        "Report generated and saved successfully",
+        "success"
+      );
+
+      // Redirect to the experianBusinessId record page
+      this[NavigationMixin.Navigate]({
+        type: "standard__recordPage",
+        attributes: {
+          recordId: experianBusinessId,
+          objectApiName: "ExperianBusiness__c", // Replace with the actual API name of the object
+          actionName: "view"
+        }
+      });
     } catch (error) {
-      this.showToast("Error getting PDF report", error.body.message, "error");
+      this.showToast("Error", "Failed to generate or save report", "error");
       console.error("Error handling PDF:", error);
       this.isLoading = false;
     }

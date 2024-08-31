@@ -39,7 +39,7 @@
           <lightning-input
             label="BIN"
             name="bin"
-            value={searchCriteria.bin}
+            value={_searchCriteria.bin}
             onchange={handleInputChange}
             data-id="bin"
             class="slds-m-bottom_small"
@@ -48,15 +48,16 @@
             label="Business name"
             required
             name="businessName"
-            value={searchCriteria.businessName}
+            value={_searchCriteria.businessName}
             onchange={handleInputChange}
             data-id="businessName"
+            data-required
             class="slds-m-bottom_small"
           ></lightning-input>
           <lightning-input
             label="Address"
             name="address"
-            value={searchCriteria.address}
+            value={_searchCriteria.address}
             onchange={handleInputChange}
             data-id="address"
             class="slds-m-bottom_small"
@@ -68,9 +69,10 @@
                 label="City"
                 required
                 name="city"
-                value={searchCriteria.city}
+                value={_searchCriteria.city}
                 onchange={handleInputChange}
                 data-id="city"
+                data-required
               ></lightning-input>
             </div>
             <div class="slds-col">
@@ -78,16 +80,17 @@
                 label="State"
                 required
                 name="state"
-                value={searchCriteria.state}
+                value={_searchCriteria.state}
                 onchange={handleInputChange}
                 data-id="state"
+                data-required
               ></lightning-input>
             </div>
             <div class="slds-col">
               <lightning-input
                 label="Zip"
                 name="zip"
-                value={searchCriteria.zip}
+                value={_searchCriteria.zip}
                 onchange={handleInputChange}
                 data-id="zip"
               ></lightning-input>
@@ -97,7 +100,7 @@
           <lightning-input
             label="Country"
             name="country"
-            value={searchCriteria.country}
+            value={_searchCriteria.country}
             onchange={handleInputChange}
             data-id="country"
             class="slds-m-bottom_small"
@@ -105,7 +108,7 @@
           <lightning-input
             label="Phone"
             name="phone"
-            value={searchCriteria.phone}
+            value={_searchCriteria.phone}
             onchange={handleInputChange}
             data-id="phone"
             class="slds-m-bottom_small"
@@ -113,7 +116,7 @@
           <lightning-input
             label="Federal Tax ID"
             name="taxId"
-            value={searchCriteria.taxId}
+            value={_searchCriteria.taxId}
             onchange={handleInputChange}
             data-id="taxId"
             class="slds-m-bottom_small"
@@ -121,7 +124,7 @@
           <lightning-input
             label="Reference"
             name="reference"
-            value={searchCriteria.reference}
+            value={_searchCriteria.reference}
             onchange={handleInputChange}
             data-id="reference"
             class="slds-m-bottom_small"
@@ -140,7 +143,7 @@
         ></lightning-button>
         <lightning-button
           label="Clear search"
-          onclick={handleClear}
+          onclick={handleClearSearch}
           variant="neutral"
         ></lightning-button>
       </div>

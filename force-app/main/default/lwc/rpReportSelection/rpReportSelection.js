@@ -52,4 +52,9 @@ export default class PullReport extends LightningElement {
     const event = new CustomEvent("pullreport");
     this.dispatchEvent(event);
   }
+
+  handleClearSearch() {
+    const event = new CustomEvent("clearsearch");
+    this.dispatchEvent(event);
+  }
 }

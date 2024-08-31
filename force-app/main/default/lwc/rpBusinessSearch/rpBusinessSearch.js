@@ -1,17 +1,10 @@
-import { LightningElement, api } from "lwc";
+import { LightningElement, api, track } from "lwc";
 import getLOS from "@salesforce/apex/BusinessSearch.getLOS";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 
 export default class RpBusinessSearch extends LightningElement {
   @api businessid;
-  isLoading = false;
-
-  searchOptions = [
-    { label: "Business", value: "business" },
-    { label: "Business & Owner (Blended)", value: "blended" }
-  ];
-
-  searchCriteria = {
+  @track _searchCriteria = {
     bin: "",
     businessName: "",
     address: "",
@@ -23,6 +16,32 @@ export default class RpBusinessSearch extends LightningElement {
     taxId: "",
     reference: ""
   };
+  isLoading = false;
+
+  searchOptions = [
+    { label: "Business", value: "business" },
+    { label: "Business & Owner (Blended)", value: "blended" }
+  ];
+
+  @api
+  get searchCriteria() {
+    return this._searchCriteria;
+  }
+  set searchCriteria(value) {
+    this._searchCriteria = { ...value };
+    this.updateInputFields();
+  }
+
+  updateInputFields() {
+    Object.keys(this._searchCriteria).forEach((key) => {
+      const input = this.template.querySelector(
+        `lightning-input[data-id="${key}"]`
+      );
+      if (input) {
+        input.value = this._searchCriteria[key];
+      }
+    });
+  }
 
   handleSearchTypeChange(event) {
     this.searchType = event.detail.value;
@@ -30,14 +49,17 @@ export default class RpBusinessSearch extends LightningElement {
 
   handleInputChange(event) {
     const { name, value } = event.target;
-    this.searchCriteria = { ...this.searchCriteria, [name]: value };
+    this._searchCriteria = { ...this._searchCriteria, [name]: value };
+    if (name === "bin") {
+      this.toggleRequiredFields(value);
+    }
   }
 
   handleSearch() {
     if (this.validateFields()) {
       this.isLoading = true;
       getLOS({
-        searchCriteria: this.searchCriteria
+        searchCriteria: this._searchCriteria
       })
         .then((result) => {
           const processedResults = this.processSearchResults(result);
@@ -113,7 +135,7 @@ export default class RpBusinessSearch extends LightningElement {
     const zipValue = zipInput.value;
 
     if (zipValue && !/^\d{5}$/.test(zipValue)) {
-      zipInput.setCustomValidity("ZIP code must 5 digits.");
+      zipInput.setCustomValidity("ZIP code must be 5 digits.");
       zipInput.reportValidity();
       return false;
     }
@@ -141,6 +163,18 @@ export default class RpBusinessSearch extends LightningElement {
         reliabilityCode: business.reliabilityCode,
         uccIndicator: business.uccIndicator
       };
+    });
+  }
+
+  handleClearSearch() {
+    const event = new CustomEvent("clearsearch");
+    this.dispatchEvent(event);
+  }
+
+  toggleRequiredFields(binValue) {
+    const requiredFields = this.template.querySelectorAll("[data-required]");
+    requiredFields.forEach((field) => {
+      field.required = !binValue;
     });
   }
 

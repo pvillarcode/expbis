@@ -6,6 +6,8 @@
           <c-rp-business-search
             onbusinesssearched={handleBusinessSearched}
             businessid={businessId}
+            search-criteria={searchCriteria}
+            onclearsearch={handleClearSearch}
             class="slds-col slds-size_4-of-12"
           ></c-rp-business-search>
           <c-rp-search-results
@@ -21,6 +23,7 @@
           loading={isLoading}
           onreportselected={handleReportSelected}
           onpullreport={handlePullReport}
+          onclearsearch={handleClearSearch}
         ></c-rp-report-selection>
       </template>
       <template if:true={isReportDisplay}>

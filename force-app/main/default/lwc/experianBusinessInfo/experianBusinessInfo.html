@@ -11,7 +11,7 @@
             </div>
             <div class="score-box">
               <div class="score-type">Intelliscore</div>
-              <div class="score-value">N/A</div>
+              <div class="score-value">{intelliscore}</div>
             </div>
           </div>
           <!-- Financial Stability Risk -->
@@ -19,11 +19,13 @@
             <div class="section-title">&nbsp;</div>
             <div class="score-box">
               <div class="score-type">Financial Stability Risk</div>
-              <div class="score-value">N/A</div>
+              <div class="score-value">{financialStabilityRisk}</div>
             </div>
           </div>
         </div>
-        <div class="credit-limit">Credit Limit Recommendation: N/A</div>
+        <div class="credit-limit">
+          Credit Limit Recommendation: {creditLimitRecommendation}
+        </div>
       </div>
 
       <!-- Second Column -->
@@ -33,9 +35,9 @@
           <div class="slds-col slds-size_1-of-3 small-box">
             <div class="section-title">Days Beyond Terms</div>
             <div class="score-box">
-              <div class="score-value">N/A</div>
+              <div class="score-value">{daysBeyondTerms}</div>
               <div class="score-type">Company DBT</div>
-              <div class="industry-dbt">Industry DBT: N/A</div>
+              <div class="industry-dbt">Industry DBT: {industryDbt}</div>
             </div>
           </div>
 
@@ -43,7 +45,7 @@
           <div class="slds-col slds-size_1-of-3 small-box">
             <div class="section-title">Derogatory Legal</div>
             <div class="score-box">
-              <div class="score-value">0</div>
+              <div class="score-value">{derogatoryLegal}</div>
               <div class="score-type">Original Filings</div>
             </div>
           </div>
@@ -52,7 +54,7 @@
           <div class="slds-col slds-size_1-of-3 small-box">
             <div class="section-title">Fraud Alerts</div>
             <div class="score-box">
-              <div class="score-value">N/A</div>
+              <div class="score-value">{fraudAlerts}</div>
               <div class="score-type">High Risk Alerts</div>
             </div>
           </div>
