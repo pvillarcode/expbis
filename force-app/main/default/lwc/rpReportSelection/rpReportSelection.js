@@ -1,11 +1,12 @@
 import { LightningElement, track, api } from "lwc";
 
-export default class PullReport extends LightningElement {
+export default class RpReportSelection extends LightningElement {
   @track value = "premier";
   @track selectedModel = "intelliscore";
   @track selectedDefaultOptions = ["useScoringModelDefault"];
   @track reportDescription = "";
   @api loading = false;
+  @api business;
 
   reportOptions = [
     { label: "Premier Profile", value: "premier" },
@@ -34,6 +35,7 @@ export default class PullReport extends LightningElement {
   ];
 
   connectedCallback() {
+    console.log(this.business);
     this.updateReportDescription(this.value);
   }
 
