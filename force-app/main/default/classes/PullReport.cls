@@ -286,6 +286,10 @@ public with sharing class PullReport {
         commercialFraudShieldSummary,
         'nameAddressVerificationIndicator'
       );
+      business.cfs_Victim_Statement_Indicator__c = getSafeBoolean(
+        commercialFraudShieldSummary,
+        'businessVictimStatementIndicator'
+      );
       Map<String, Object> ofacMatchWarning = (Map<String, Object>) commercialFraudShieldSummary.get(
         'ofacMatchWarning'
       );
