@@ -7,17 +7,10 @@ public with sharing class ExperianBusinessController {
       SELECT
         Id,
         Name,
-        Bank_Data_Indicator__c,
         Business_Phone__c,
-        Executive_Summary_Indicator__c,
         City__c,
-        Financial_Statemen_Indicator__c,
-        Goverment_Data_Indicator__c,
-        Inquiry_Indicator__c,
-        Number_of_Trade_Lines__c,
         State__c,
         Street_Address__c,
-        UCC_Indicator__c,
         Zip_Extension__c,
         Zip__c,
         Account__c,
@@ -38,7 +31,12 @@ public with sharing class ExperianBusinessController {
         Commercial_Risk_Code__c,
         Commercial_Risk_Definition__c,
         Commercial_Credit_Limit_Recommendation__c,
-        Commercial_Dispute_Indicator__c
+        Commercial_Dispute_Indicator__c,
+        cfs_Active_Business_Indicator__c,
+        cfs_Business_Risk_Triggers_Indicator__c,
+        cfs_Matching_Business_Indicator__c,
+        cfs_Name_Address_Verification_Indicator__c,
+        cfs_Possible_OFAC_Match__c
       FROM Experian_Business__c
       WHERE Account__c = :accountId
     ];

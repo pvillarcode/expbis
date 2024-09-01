@@ -259,6 +259,43 @@ public with sharing class PullReport {
       business,
       (Map<String, Object>) results.get('scoreInformation')
     );
+    updateCommercialFraudFields(
+      business,
+      (Map<String, Object>) results.get('commercialFraudShieldSummary')
+    );
+  }
+
+  private static void updateCommercialFraudFields(
+    Experian_Business__c business,
+    Map<String, Object> commercialFraudShieldSummary
+  ) {
+    if (commercialFraudShieldSummary != null) {
+      business.cfs_Active_Business_Indicator__c = getSafeBoolean(
+        commercialFraudShieldSummary,
+        'activeBusinessIndicator'
+      );
+      business.cfs_Business_Risk_Triggers_Indicator__c = getSafeBoolean(
+        commercialFraudShieldSummary,
+        'businessRiskTriggersIndicator'
+      );
+      business.cfs_Matching_Business_Indicator__c = getSafeString(
+        commercialFraudShieldSummary,
+        'matchingBusinessIndicator'
+      );
+      business.cfs_Name_Address_Verification_Indicator__c = getSafeBoolean(
+        commercialFraudShieldSummary,
+        'nameAddressVerificationIndicator'
+      );
+      Map<String, Object> ofacMatchWarning = (Map<String, Object>) commercialFraudShieldSummary.get(
+        'ofacMatchWarning'
+      );
+      if (ofacMatchWarning != null) {
+        business.cfs_Possible_OFAC_Match__c = getSafeString(
+          ofacMatchWarning,
+          'definition'
+        );
+      }
+    }
   }
 
   private static void updateBusinessHeaderFields(
