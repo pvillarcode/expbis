@@ -58,7 +58,10 @@ export default class ExperianBusinessInfo extends LightningElement {
   }
 
   get creditLimitRecommendation() {
-    return this.experianBusinessRecords.Credit_Limit_Recommendation__c || "N/A";
+    return (
+      this.experianBusinessRecords.Commercial_Credit_Limit_Recommendation__c ||
+      "N/A"
+    );
   }
 
   get daysBeyondTerms() {

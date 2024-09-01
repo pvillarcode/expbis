@@ -6,8 +6,6 @@ public with sharing class PullReport {
 
   @AuraEnabled
   public static String getJSONReport(String jsonData) {
-    System.debug('getJSON Report');
-    System.debug(jsonData);
     Map<String, Object> businessMap = (Map<String, Object>) JSON.deserializeUntyped(
       jsonData
     );
@@ -97,13 +95,22 @@ public with sharing class PullReport {
         'Invalid input: base64Data, fileName, and customObjectId are required.'
       );
     }
-
+    if (!Schema.sObjectType.ContentVersion.isCreateable()) {
+      throw new AuraHandledException(
+        'Insufficient permissions to create PDF file.'
+      );
+    }
     ContentVersion cv = new ContentVersion();
     cv.VersionData = EncodingUtil.base64Decode(base64Data);
     cv.Title = fileName;
     cv.PathOnClient = fileName + '.pdf';
     insert cv;
 
+    if (!Schema.sObjectType.ContentDocumentLink.isCreateable()) {
+      throw new AuraHandledException(
+        'Insufficient permissions to create ContentDocumentLink.'
+      );
+    }
     cv = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
 
     ContentDocumentLink cdl = new ContentDocumentLink();
@@ -127,8 +134,6 @@ public with sharing class PullReport {
 
       Id accountId = findOrcreateAccount(results);
       Id businessId = getOrUpdateBusiness(results, accountId);
-      System.debug('Business: ' + businessId);
-      //TODO update Related records
 
       return businessId;
     } catch (Exception e) {
@@ -148,6 +153,11 @@ public with sharing class PullReport {
 
     String accountName = (String) businessHeader.get('businessName');
 
+    if (!Schema.sObjectType.Account.isAccessible()) {
+      throw new AuraHandledException(
+        'Insufficient permissions to access Account.'
+      );
+    }
     List<Account> existingAccounts = [
       SELECT Id
       FROM Account
@@ -158,6 +168,20 @@ public with sharing class PullReport {
     if (!existingAccounts.isEmpty()) {
       return existingAccounts[0].Id;
     } else {
+      if (
+        !Schema.sObjectType.Account.fields.Name.isCreateable() ||
+        !Schema.sObjectType.Account.fields.BillingStreet.isCreateable() ||
+        !Schema.sObjectType.Account.fields.BillingCity.isCreateable() ||
+        !Schema.sObjectType.Account.fields.BillingState.isCreateable() ||
+        !Schema.sObjectType.Account.fields.BillingPostalCode.isCreateable() ||
+        !Schema.sObjectType.Account.fields.Phone.isCreateable() ||
+        !Schema.sObjectType.Account.fields.Website.isCreateable()
+      ) {
+        throw new AuraHandledException(
+          'Insufficient permissions to create Account fields.'
+        );
+      }
+
       Account newAccount = new Account(
         Name = accountName,
         BillingStreet = (String) address.get('street'),
@@ -177,129 +201,23 @@ public with sharing class PullReport {
     Id accountId
   ) {
     try {
-      List<Experian_Business__c> existingBusinesses = [
-        SELECT Id
-        FROM Experian_Business__c
-        WHERE Account__c = :accountId
-        LIMIT 1
-      ];
-
-      Experian_Business__c business;
-
-      if (!existingBusinesses.isEmpty()) {
-        business = existingBusinesses[0];
-      } else {
-        business = new Experian_Business__c(Account__c = accountId);
-      }
-
-      Map<String, Object> businessHeader = (Map<String, Object>) results.get(
-        'businessHeader'
-      );
-
-      Map<String, Object> address = (Map<String, Object>) businessHeader.get(
-        'address'
-      );
-
-      Map<String, Object> businessFacts = (Map<String, Object>) results.get(
-        'businessFacts'
-      );
-
-      Map<String, Object> scoreInformation = (Map<String, Object>) results.get(
-        'scoreInformation'
-      );
-
-      business.BIN__c = (String) businessHeader.get('bin');
-      business.Name = (String) businessHeader.get('businessName');
-      business.Business_Phone__c = (String) businessHeader.get('phone');
-      business.City__c = (String) address.get('city');
-      business.State__c = (String) address.get('state');
-      business.Zip__c = (String) address.get('zip');
-
-      business.bf_business_type__c = (String) businessFacts.get('businessType');
-      business.bf_Date_of_Incorporation__c = (String) businessFacts.get(
-        'dateOfIncorporation'
-      );
-      business.bf_File_Established_Date__c = (String) businessFacts.get(
-        'fileEstablishedDate'
-      );
-      business.bf_Years_In_Business__c = getSafeString(
-        businessFacts,
-        'yearsInBusiness'
-      );
-
-      if (scoreInformation != null) {
-        // FSR Score information
-        Map<String, Object> fsrScore = (Map<String, Object>) scoreInformation.get(
-          'fsrScore'
+      if (!Schema.sObjectType.Experian_Business__c.isAccessible()) {
+        throw new AuraHandledException(
+          'Insufficient permissions to access Experian_Business__c.'
         );
-        if (fsrScore != null) {
-          business.FSR_Score__c = getSafeString(fsrScore, 'score');
-          business.FSR_Model_Code__c = getSafeString(fsrScore, 'modelCode');
-          business.FSR_Model_Title__c = getSafeString(fsrScore, 'modelTitle');
-          business.FSR_Dispute_Indicator__c = getSafeBoolean(
-            fsrScore,
-            'customerDisputeIndicator'
-          );
-
-          // Accessing nested RiskClass
-          Map<String, Object> riskClass = (Map<String, Object>) fsrScore.get(
-            'riskClass'
-          );
-          if (riskClass != null) {
-            business.FSR_Risk_Code__c = getSafeString(riskClass, 'code');
-            business.FSR_Risk_Definition__c = getSafeString(
-              riskClass,
-              'definition'
-            );
-          }
-        } else {
-          System.debug('FSR Score is null');
-        }
-
-        Map<String, Object> commercialScore = (Map<String, Object>) scoreInformation.get(
-          'commercialScore'
-        );
-        if (commercialScore != null) {
-          business.Commercial_Score__c = getSafeString(
-            commercialScore,
-            'score'
-          );
-          business.Commercial_Model_Code__c = getSafeString(
-            commercialScore,
-            'modelCode'
-          );
-          business.Commercial_Model_Title__c = getSafeString(
-            commercialScore,
-            'modelTitle'
-          );
-          business.Commercial_Credit_Limit_Recommendation__c = getSafeString(
-            commercialScore,
-            'recommendedCreditLimitAmount'
-          );
-          business.Commercial_Dispute_Indicator__c = getSafeBoolean(
-            commercialScore,
-            'customerDisputeIndicator'
-          );
-
-          // Accessing nested RiskClass
-          Map<String, Object> riskClass = (Map<String, Object>) commercialScore.get(
-            'riskClass'
-          );
-          if (riskClass != null) {
-            business.Commercial_Risk_Code__c = getSafeString(riskClass, 'code');
-            business.Commercial_Risk_Definition__c = getSafeString(
-              riskClass,
-              'definition'
-            );
-          }
-        } else {
-          System.debug('Commercial Score is null');
-        }
-      } else {
-        System.debug('Score Information is null');
       }
+      Experian_Business__c business = getExistingOrNewBusiness(accountId);
 
-      System.debug('Business: ' + business);
+      updateBusinessFields(business, results);
+
+      if (
+        !Schema.sObjectType.Experian_Business__c.isCreateable() ||
+        !Schema.sObjectType.Experian_Business__c.isUpdateable()
+      ) {
+        throw new AuraHandledException(
+          'Insufficient permissions to create or update Experian_Business__c.'
+        );
+      }
       upsert business;
       return business.Id;
     } catch (Exception e) {
@@ -312,7 +230,156 @@ public with sharing class PullReport {
     }
   }
 
-  // Helper methods for safe attribute access
+  private static Experian_Business__c getExistingOrNewBusiness(Id accountId) {
+    List<Experian_Business__c> existingBusinesses = [
+      SELECT Id
+      FROM Experian_Business__c
+      WHERE Account__c = :accountId
+      LIMIT 1
+    ];
+
+    return !existingBusinesses.isEmpty()
+      ? existingBusinesses[0]
+      : new Experian_Business__c(Account__c = accountId);
+  }
+
+  private static void updateBusinessFields(
+    Experian_Business__c business,
+    Map<String, Object> results
+  ) {
+    updateBusinessHeaderFields(
+      business,
+      (Map<String, Object>) results.get('businessHeader')
+    );
+    updateBusinessFactsFields(
+      business,
+      (Map<String, Object>) results.get('businessFacts')
+    );
+    updateScoreInformationFields(
+      business,
+      (Map<String, Object>) results.get('scoreInformation')
+    );
+  }
+
+  private static void updateBusinessHeaderFields(
+    Experian_Business__c business,
+    Map<String, Object> businessHeader
+  ) {
+    if (businessHeader != null) {
+      Map<String, Object> address = (Map<String, Object>) businessHeader.get(
+        'address'
+      );
+      business.BIN__c = getSafeString(businessHeader, 'bin');
+      business.Name = getSafeString(businessHeader, 'businessName');
+      business.Business_Phone__c = getSafeString(businessHeader, 'phone');
+      business.City__c = getSafeString(address, 'city');
+      business.State__c = getSafeString(address, 'state');
+      business.Zip__c = getSafeString(address, 'zip');
+    }
+  }
+
+  private static void updateBusinessFactsFields(
+    Experian_Business__c business,
+    Map<String, Object> businessFacts
+  ) {
+    if (businessFacts != null) {
+      business.bf_business_type__c = getSafeString(
+        businessFacts,
+        'businessType'
+      );
+      business.bf_Date_of_Incorporation__c = getSafeString(
+        businessFacts,
+        'dateOfIncorporation'
+      );
+      business.bf_File_Established_Date__c = getSafeString(
+        businessFacts,
+        'fileEstablishedDate'
+      );
+      business.bf_Years_In_Business__c = getSafeString(
+        businessFacts,
+        'yearsInBusiness'
+      );
+    }
+  }
+
+  private static void updateScoreInformationFields(
+    Experian_Business__c business,
+    Map<String, Object> scoreInformation
+  ) {
+    if (scoreInformation != null) {
+      updateFSRScoreFields(
+        business,
+        (Map<String, Object>) scoreInformation.get('fsrScore')
+      );
+      updateCommercialScoreFields(
+        business,
+        (Map<String, Object>) scoreInformation.get('commercialScore')
+      );
+    }
+  }
+
+  private static void updateFSRScoreFields(
+    Experian_Business__c business,
+    Map<String, Object> fsrScore
+  ) {
+    if (fsrScore != null) {
+      business.FSR_Score__c = getSafeString(fsrScore, 'score');
+      business.FSR_Model_Code__c = getSafeString(fsrScore, 'modelCode');
+      business.FSR_Model_Title__c = getSafeString(fsrScore, 'modelTitle');
+      business.FSR_Dispute_Indicator__c = getSafeBoolean(
+        fsrScore,
+        'customerDisputeIndicator'
+      );
+
+      Map<String, Object> riskClass = (Map<String, Object>) fsrScore.get(
+        'riskClass'
+      );
+      if (riskClass != null) {
+        business.FSR_Risk_Code__c = getSafeString(riskClass, 'code');
+        business.FSR_Risk_Definition__c = getSafeString(
+          riskClass,
+          'definition'
+        );
+      }
+    }
+  }
+
+  private static void updateCommercialScoreFields(
+    Experian_Business__c business,
+    Map<String, Object> commercialScore
+  ) {
+    if (commercialScore != null) {
+      business.Commercial_Score__c = getSafeString(commercialScore, 'score');
+      business.Commercial_Model_Code__c = getSafeString(
+        commercialScore,
+        'modelCode'
+      );
+      business.Commercial_Model_Title__c = getSafeString(
+        commercialScore,
+        'modelTitle'
+      );
+      business.Commercial_Credit_Limit_Recommendation__c = getSafeString(
+        commercialScore,
+        'recommendedCreditLimitAmount'
+      );
+      business.Commercial_Dispute_Indicator__c = getSafeBoolean(
+        commercialScore,
+        'customerDisputeIndicator'
+      );
+
+      Map<String, Object> riskClass = (Map<String, Object>) commercialScore.get(
+        'riskClass'
+      );
+      if (riskClass != null) {
+        business.Commercial_Risk_Code__c = getSafeString(riskClass, 'code');
+        business.Commercial_Risk_Definition__c = getSafeString(
+          riskClass,
+          'definition'
+        );
+      }
+    }
+  }
+
   private static String getSafeString(Map<String, Object> data, String key) {
     Object value = data.get(key);
     return value != null ? String.valueOf(value) : null;
