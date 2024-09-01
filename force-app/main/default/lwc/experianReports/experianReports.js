@@ -1,127 +1,99 @@
-import { LightningElement, wire, track } from "lwc";
-import { CurrentPageReference } from "lightning/navigation";
+import { LightningElement, api, wire, track } from "lwc";
 import { NavigationMixin } from "lightning/navigation";
+import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import getExperianReports from "@salesforce/apex/ExperianBusinessController.getExperianReports";
 
-const columns = [
-  { label: "Title", fieldName: "Title", type: "text" },
-  { label: "Date", fieldName: "CreatedDate", type: "text" },
-  { label: "Size", fieldName: "ContentSize", type: "text" },
+const COLUMNS = [
   {
-    label: "Action",
+    label: "FILE NAME",
+    fieldName: "Title",
     type: "button",
     typeAttributes: {
-      label: "View Report",
-      name: "view_download",
-      title: "Click to View/Download",
-      disabled: false,
-      value: "view_download"
+      label: { fieldName: "Title" },
+      name: "view_file",
+      title: "Click to View File",
+      variant: "base"
+    },
+    cellAttributes: {
+      class: { fieldName: "titleClass" }
     }
+  },
+  {
+    label: "DATE",
+    fieldName: "CreatedDate",
+    type: "date",
+    sortable: true,
+    typeAttributes: {
+      year: "numeric",
+      month: "long",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    }
+  },
+  {
+    label: "REPORT PULLED BY",
+    fieldName: "CreatedBy",
+    type: "text",
+    sortable: true
   }
 ];
 
 export default class ExperianReports extends NavigationMixin(LightningElement) {
-  @track accountId;
-  @track files;
+  @api recordId;
+  @track files = [];
   @track error;
   @track currentPage = 1;
-  @track pageSize = 5;
-  columns = columns;
+  @track pageSize = 3;
+  @track totalRecords = 0;
+  @track sortBy;
+  @track sortDirection;
 
-  @wire(CurrentPageReference)
-  getStateParameters(currentPageReference) {
-    console.log("Getting Reports");
+  columns = COLUMNS;
+  isLoading = true;
 
-    if (currentPageReference && currentPageReference.attributes.recordId) {
-      this.accountId = currentPageReference.attributes.recordId;
-      console.log("Getting Reports Account Id: ", this.accountId);
-      this.wiredFiles();
-    } else {
-      console.error("No Account Id provided");
+  wiredFilesResult;
+
+  @wire(getExperianReports, {
+    accountId: "$recordId",
+    pageSize: "$pageSize",
+    pageNumber: "$currentPage"
+  })
+  wiredFiles(result) {
+    this.wiredFilesResult = result;
+    this.isLoading = true;
+    const { data, error } = result;
+    if (data) {
+      console.log("Received data:", data);
+      this.files = this.transformData(data.records);
+      this.totalRecords = data.totalRecords;
+      this.error = undefined;
+    } else if (error) {
+      this.handleError(error);
     }
+    this.isLoading = false;
   }
 
-  wiredFiles() {
-    if (!this.accountId) {
-      console.error("No Account Id provided in WiredFiles");
-      return;
+  transformData(data) {
+    if (!Array.isArray(data)) {
+      console.error("transformData received non-array data:", data);
+      return [];
     }
-    getExperianReports({
-      accountId: this.accountId,
-      pageSize: this.pageSize,
-      pageNumber: this.currentPage
-    })
-      .then((data) => {
-        console.log("WiredFiles: ", this.accountId);
-        if (data) {
-          console.log("Data: ", data);
-          this.files = data.map((file) => ({
-            Id: file.ContentDocumentId,
-            Title: file.ContentDocument.Title,
-            CreatedDate: this.formatFriendlyDate(
-              file.ContentDocument.CreatedDate
-            ),
-            ContentSize: this.formatFileSize(file.ContentDocument.ContentSize)
-          }));
-          console.log(this.files);
-          this.error = undefined;
-        }
-      })
-      .catch((error) => {
-        console.error("Error getting files: ", error);
-        this.error = error;
-        this.files = undefined;
-      });
-  }
-
-  formatFriendlyDate(dateString) {
-    const options = {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit"
-    };
-    return new Intl.DateTimeFormat("en-US", options).format(
-      new Date(dateString)
-    );
+    return data.map((file) => ({
+      Id: file.ContentDocumentId,
+      Title: file.ContentDocument.Title,
+      CreatedDate: file.ContentDocument.CreatedDate,
+      CreatedBy: file.ContentDocument.CreatedBy.Name,
+      titleClass: "slds-text-link"
+    }));
   }
 
   handleRowAction(event) {
-    const action = event.detail.action;
+    const actionName = event.detail.action.name;
     const row = event.detail.row;
-    switch (action.name) {
-      case "view_download":
-        this.viewFile(row.Id);
-        break;
-      default:
-        break;
-    }
-  }
 
-  get paginatedFiles() {
-    return this.files;
-  }
-
-  get isFirstPage() {
-    return this.currentPage === 1;
-  }
-
-  get isLastPage() {
-    return this.files.length < this.pageSize;
-  }
-
-  handlePrevious() {
-    if (this.currentPage > 1) {
-      this.currentPage -= 1;
-      this.wiredFiles();
-    }
-  }
-
-  handleNext() {
-    if (!this.isLastPage) {
-      this.currentPage += 1;
-      this.wiredFiles();
+    if (actionName === "view_file") {
+      this.viewFile(row.Id);
     }
   }
 
@@ -143,5 +115,49 @@ export default class ExperianReports extends NavigationMixin(LightningElement) {
     const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+  }
+
+  handleError(error) {
+    console.error("Error:", error);
+    this.error = error.body?.message || "Unknown error occurred";
+    this.files = undefined;
+    this.showToast("Error", this.error, "error");
+  }
+
+  showToast(title, message, variant) {
+    const evt = new ShowToastEvent({ title, message, variant });
+    this.dispatchEvent(evt);
+  }
+
+  // Pagination methods
+  get totalPages() {
+    return Math.ceil(this.totalRecords / this.pageSize);
+  }
+
+  get isFirstPage() {
+    return this.currentPage === 1;
+  }
+
+  get isLastPage() {
+    return this.currentPage === this.totalPages || this.totalPages === 0;
+  }
+
+  previousPage() {
+    if (!this.isFirstPage) {
+      this.currentPage -= 1;
+    }
+  }
+
+  nextPage() {
+    if (!this.isLastPage) {
+      this.currentPage += 1;
+    }
+  }
+
+  get pageInfo() {
+    if (this.totalRecords === 0) return "0-0 of 0";
+    const start = (this.currentPage - 1) * this.pageSize + 1;
+    const end = Math.min(start + this.pageSize - 1, this.totalRecords);
+    return `${start}-${end} of ${this.totalRecords}`;
   }
 }

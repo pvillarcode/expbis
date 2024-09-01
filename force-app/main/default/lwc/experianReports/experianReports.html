@@ -1,30 +1,36 @@
 <template>
   <lightning-card title="Experian Reports" icon-name="standard:document">
     <div class="slds-m-around_medium">
-      <template if:true={files}>
+      <template if:true={isLoading}>
+        <lightning-spinner
+          alternative-text="Loading"
+          size="small"
+        ></lightning-spinner>
+      </template>
+      <template if:false={isLoading}>
         <lightning-datatable
           key-field="Id"
-          data={paginatedFiles}
+          data={files}
           columns={columns}
           hide-checkbox-column
           onrowaction={handleRowAction}
         >
         </lightning-datatable>
-        <div class="slds-m-top_medium">
-          <lightning-button
-            label="Previous"
-            onclick={handlePrevious}
-            disabled={isFirstPage}
-          ></lightning-button>
-          <lightning-button
-            label="Next"
-            onclick={handleNext}
-            disabled={isLastPage}
-          ></lightning-button>
+        <div class="slds-m-top_small">
+          <lightning-button-group>
+            <lightning-button
+              label="Previous"
+              onclick={previousPage}
+              disabled={isFirstPage}
+            ></lightning-button>
+            <lightning-button
+              label="Next"
+              onclick={nextPage}
+              disabled={isLastPage}
+            ></lightning-button>
+          </lightning-button-group>
+          <span class="slds-m-left_small">{pageInfo}</span>
         </div>
-      </template>
-      <template if:true={error}>
-        <p>Error loading files: {error}</p>
       </template>
     </div>
   </lightning-card>

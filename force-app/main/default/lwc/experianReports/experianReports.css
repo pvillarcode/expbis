@@ -1,3 +1,25 @@
-.file-icon {
-  --sds-c-icon-color-foreground-default: #0070d2;
+.slds-card {
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.1);
+}
+
+.slds-card__header {
+  background-color: #f3f2f2;
+  border-bottom: 1px solid #dddbda;
+}
+
+.slds-card__body {
+  min-height: 300px;
+}
+
+.slds-text-align_center {
+  font-style: italic;
+  color: #706e6b;
+}
+
+.slds-button-icon_container {
+  color: #706e6b;
+}
+
+.slds-button-icon_container:hover:not(:disabled) {
+  color: #1b96ff;
 }

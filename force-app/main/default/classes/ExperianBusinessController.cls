@@ -44,31 +44,76 @@ public with sharing class ExperianBusinessController {
     ];
   }
 
+  public class PaginatedResult {
+    @AuraEnabled
+    public List<ContentDocumentLink> records;
+    @AuraEnabled
+    public Integer totalRecords;
+
+    public PaginatedResult(
+      List<ContentDocumentLink> records,
+      Integer totalRecords
+    ) {
+      this.records = records;
+      this.totalRecords = totalRecords;
+    }
+  }
+
   @AuraEnabled(cacheable=true)
-  public static List<ContentDocumentLink> getExperianReports(
+  public static PaginatedResult getExperianReports(
     Id accountId,
     Integer pageSize,
     Integer pageNumber
   ) {
-    System.debug(accountId);
-    Id businessId = [
-      SELECT Id
-      FROM Experian_Business__c
-      WHERE Account__c = :accountId
-      LIMIT 1
-    ]
-    .Id;
+    System.debug('getExperianReports called');
+    System.debug('accountId: ' + accountId);
+    System.debug('pageSize: ' + pageSize);
+    System.debug('pageNumber: ' + pageNumber);
+
+    Id businessId;
+    try {
+      businessId = [
+        SELECT Id
+        FROM Experian_Business__c
+        WHERE Account__c = :accountId
+        LIMIT 1
+      ]
+      .Id;
+    } catch (Exception e) {
+      System.debug('Error finding Experian_Business__c: ' + e.getMessage());
+      return new PaginatedResult(new List<ContentDocumentLink>(), 0);
+    }
+
     Integer offset = (pageNumber - 1) * pageSize;
-    return [
+
+    // Get total count
+    Integer totalRecords = [
+      SELECT COUNT()
+      FROM ContentDocumentLink
+      WHERE LinkedEntityId = :businessId
+    ];
+
+    // Get paginated results
+    List<ContentDocumentLink> results = [
       SELECT
+        ContentDocumentId,
         ContentDocument.Title,
         ContentDocument.CreatedDate,
-        ContentDocument.ContentSize
+        ContentDocument.CreatedBy.Name
       FROM ContentDocumentLink
       WHERE LinkedEntityId = :businessId
       ORDER BY ContentDocument.CreatedDate DESC
       LIMIT :pageSize
       OFFSET :offset
     ];
+
+    System.debug(
+      'Returning ' +
+        results.size() +
+        ' records out of ' +
+        totalRecords +
+        ' total'
+    );
+    return new PaginatedResult(results, totalRecords);
   }
 }
