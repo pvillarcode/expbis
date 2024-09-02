@@ -26,6 +26,7 @@
     <div class="slds-card__body">
       <form class="slds-form slds-form_stacked custom-form">
         <div class="slds-scrollable_y form-container">
+          <!--
           <lightning-radio-group
             name="searchType"
             label="Search by"
@@ -35,15 +36,8 @@
             class="slds-m-bottom_medium"
           >
           </lightning-radio-group>
+           -->
 
-          <lightning-input
-            label="BIN"
-            name="bin"
-            value={_searchCriteria.bin}
-            onchange={handleInputChange}
-            data-id="bin"
-            class="slds-m-bottom_small"
-          ></lightning-input>
           <lightning-input
             label="Business name"
             required
@@ -76,7 +70,7 @@
               ></lightning-input>
             </div>
             <div class="slds-col">
-              <lightning-input
+              <lightning-combobox
                 label="State"
                 required
                 name="state"
@@ -84,7 +78,8 @@
                 onchange={handleInputChange}
                 data-id="state"
                 data-required
-              ></lightning-input>
+                options={stateOptions}
+              ></lightning-combobox>
             </div>
             <div class="slds-col">
               <lightning-input
@@ -96,7 +91,15 @@
               ></lightning-input>
             </div>
           </div>
-
+          <lightning-input
+            label="BIN"
+            name="bin"
+            value={_searchCriteria.bin}
+            onchange={handleInputChange}
+            data-id="bin"
+            class="slds-m-bottom_small"
+          ></lightning-input>
+          <!-- 
           <lightning-input
             label="Country"
             name="country"
@@ -104,7 +107,7 @@
             onchange={handleInputChange}
             data-id="country"
             class="slds-m-bottom_small"
-          ></lightning-input>
+          ></lightning-input>-->
           <lightning-input
             label="Phone"
             name="phone"

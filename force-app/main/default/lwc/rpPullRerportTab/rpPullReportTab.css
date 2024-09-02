@@ -1,0 +1,43 @@
+.slds-card {
+  box-shadow: 0 2px 4px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 0.25rem;
+}
+
+.slds-card__header {
+  background-color: #f3f2f2;
+  border-bottom: 1px solid #d8dde6;
+}
+
+.slds-tabs_default__nav {
+  border-bottom: 2px solid #d8dde6;
+}
+
+.slds-tabs_default__item {
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.slds-tabs_default__item.slds-is-active::after {
+  background-color: #0070d2;
+  height: 3px;
+  bottom: -2px;
+}
+
+.slds-tabs_default__content {
+  padding: 1rem;
+}
+
+.slds-spinner_container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 9002;
+  background-color: rgba(255, 255, 255, 0.75);
+  visibility: visible;
+  opacity: 1;
+  transition:
+    opacity 0.2s ease,
+    visibility 0.2s ease;
+}

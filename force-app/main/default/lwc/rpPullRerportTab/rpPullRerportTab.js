@@ -155,12 +155,13 @@ export default class RpPullReportTab extends NavigationMixin(LightningElement) {
         }
       }
       this.isLoading = false;
-      this.currentPage = "rp-report-display";
+
       this.showToast(
         "Success",
         "Report generated and saved successfully",
         "success"
       );
+      this.handleClearSearch();
 
       // Redirect to the experianBusinessId record page
       this[NavigationMixin.Navigate]({
