@@ -80,6 +80,7 @@ public with sharing class PullReport {
       return 'Error';
     }
   }
+
   @AuraEnabled
   public static Id savePDFToSalesforce(
     String base64Data,
