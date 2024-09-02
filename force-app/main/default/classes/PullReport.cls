@@ -143,7 +143,46 @@ public with sharing class PullReport {
     }
   }
 
-  private static Id findOrcreateAccount(Map<String, Object> results) {
+  public static Id findOrCreateAccount(Map<String, Object> results) {
+    System.debug('Entering findOrCreateAccount method');
+    AccountInfo accountInfo = extractAccountInfo(results);
+
+    Id accountId = findExactMatch(accountInfo);
+    if (accountId != null) {
+      return accountId;
+    }
+
+    accountId = findPotentialDuplicate(accountInfo);
+    if (accountId != null) {
+      return accountId;
+    }
+
+    return createNewAccount(accountInfo);
+  }
+
+  private static Id findExactMatch(AccountInfo info) {
+    List<Account> exactMatches = [
+      SELECT Id
+      FROM Account
+      WHERE
+        Name = :info.name
+        AND BillingStreet = :info.street
+        AND BillingCity = :info.city
+        AND BillingState = :info.state
+        AND BillingPostalCode = :info.zip
+      LIMIT 1
+    ];
+
+    if (!exactMatches.isEmpty()) {
+      System.debug(
+        'Exact match found. Returning account Id: ' + exactMatches[0].Id
+      );
+      return exactMatches[0].Id;
+    }
+    return null;
+  }
+
+  private static AccountInfo extractAccountInfo(Map<String, Object> results) {
     Map<String, Object> businessHeader = (Map<String, Object>) results.get(
       'businessHeader'
     );
@@ -151,48 +190,88 @@ public with sharing class PullReport {
       'address'
     );
 
-    String accountName = (String) businessHeader.get('businessName');
+    AccountInfo info = new AccountInfo();
+    info.name = (String) businessHeader.get('businessName');
+    info.street = (String) address.get('street');
+    info.city = (String) address.get('city');
+    info.state = (String) address.get('state');
+    info.zip = (String) address.get('zip');
+    info.phone = (String) businessHeader.get('phone');
+    info.website = (String) businessHeader.get('websiteUrl');
 
-    if (!Schema.sObjectType.Account.isAccessible()) {
-      throw new AuraHandledException(
-        'Insufficient permissions to access Account.'
-      );
-    }
-    List<Account> existingAccounts = [
-      SELECT Id
+    System.debug('Extracted AccountInfo: ' + info);
+    return info;
+  }
+
+  private static Id findPotentialDuplicate(AccountInfo info) {
+    List<Account> potentialDuplicates = [
+      SELECT
+        Id,
+        Name,
+        BillingStreet,
+        BillingCity,
+        BillingState,
+        BillingPostalCode
       FROM Account
-      WHERE Name = :accountName
-      LIMIT 1
+      WHERE
+        BillingStreet = :info.street
+        AND BillingCity = :info.city
+        AND BillingState = :info.state
+        AND BillingPostalCode = :info.zip
+      LIMIT 5
     ];
 
-    if (!existingAccounts.isEmpty()) {
-      return existingAccounts[0].Id;
-    } else {
-      if (
-        !Schema.sObjectType.Account.fields.Name.isCreateable() ||
-        !Schema.sObjectType.Account.fields.BillingStreet.isCreateable() ||
-        !Schema.sObjectType.Account.fields.BillingCity.isCreateable() ||
-        !Schema.sObjectType.Account.fields.BillingState.isCreateable() ||
-        !Schema.sObjectType.Account.fields.BillingPostalCode.isCreateable() ||
-        !Schema.sObjectType.Account.fields.Phone.isCreateable() ||
-        !Schema.sObjectType.Account.fields.Website.isCreateable()
-      ) {
-        throw new AuraHandledException(
-          'Insufficient permissions to create Account fields.'
+    System.debug('Potential duplicates found: ' + potentialDuplicates.size());
+
+    if (!potentialDuplicates.isEmpty()) {
+      for (Account acc : potentialDuplicates) {
+        System.debug(
+          'Potential duplicate: ' +
+            acc.Name +
+            ' at ' +
+            acc.BillingStreet +
+            ', ' +
+            acc.BillingCity
         );
       }
+      return potentialDuplicates[0].Id;
+    }
+    return null;
+  }
 
-      Account newAccount = new Account(
-        Name = accountName,
-        BillingStreet = (String) address.get('street'),
-        BillingCity = (String) address.get('city'),
-        BillingState = (String) address.get('state'),
-        BillingPostalCode = (String) address.get('zip'),
-        Phone = (String) businessHeader.get('phone'),
-        Website = (String) businessHeader.get('websiteUrl')
-      );
+  private static Id createNewAccount(AccountInfo info) {
+    System.debug('No duplicates found. Attempting to create new account.');
+
+    Account newAccount = new Account(
+      Name = info.name,
+      BillingStreet = info.street,
+      BillingCity = info.city,
+      BillingState = info.state,
+      BillingPostalCode = info.zip,
+      Phone = info.phone,
+      Website = info.website
+    );
+
+    try {
       insert newAccount;
+      System.debug('New account created successfully. Id: ' + newAccount.Id);
       return newAccount.Id;
+    } catch (DmlException e) {
+      System.debug('Error creating account: ' + e.getMessage());
+      throw new AuraHandledException(
+        'Error creating account: ' + e.getMessage()
+      );
+    }
+  }
+
+  private class AccountInfo {
+    public String name, street, city, state, zip, phone, website;
+
+    public override String toString() {
+      return String.format(
+        'AccountInfo: {0} at {1}, {2}, {3} {4}',
+        new List<String>{ name, street, city, state, zip }
+      );
     }
   }
 
