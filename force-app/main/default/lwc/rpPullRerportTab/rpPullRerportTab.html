@@ -20,6 +20,7 @@
       <template if:true={isReportSelection}>
         <c-rp-report-selection
           business={selectedBusiness}
+          scoring-models={scoringModels}
           loading={isLoading}
           onreportselected={handleReportSelected}
           onpullreport={handlePullReport}

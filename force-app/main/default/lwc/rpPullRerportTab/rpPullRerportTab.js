@@ -5,6 +5,7 @@ import getJSONReport from "@salesforce/apex/PullReport.getJSONReport";
 import savePDFToSalesforce from "@salesforce/apex/PullReport.savePDFToSalesforce";
 import saveExperianInformation from "@salesforce/apex/PullReport.saveExperianInformation";
 import getAccountDetails from "@salesforce/apex/BusinessSearch.getAccountDetails";
+import getScoringModels from "@salesforce/apex/PullReport.getScoringModels";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import { CurrentPageReference } from "lightning/navigation";
 
@@ -13,6 +14,7 @@ export default class RpPullReportTab extends NavigationMixin(LightningElement) {
   @track businessId;
   @track reportType;
   @track scoringModel;
+  @track scoringModels = [];
   @track businesses = [];
   @track selectedBusiness;
   @track report;
@@ -37,6 +39,19 @@ export default class RpPullReportTab extends NavigationMixin(LightningElement) {
       this.accountId = currentPageReference.state.c__recordId;
       this.loadAccountData();
     }
+    this.loadScoringModels();
+  }
+
+  loadScoringModels() {
+    getScoringModels()
+      .then((result) => {
+        this.scoringModels = result;
+        console.log("Scoring Models:", this.scoringModels);
+      })
+      .catch((error) => {
+        console.error("Error loading scoring models", error);
+        this.showToast("Error", "Failed to load scoring models", "error");
+      });
   }
 
   loadAccountData() {

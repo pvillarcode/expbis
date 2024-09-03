@@ -5,6 +5,19 @@ public with sharing class PullReport {
   private static final Integer TIMEOUT = 120000;
 
   @AuraEnabled
+  public static List<Experian_Scoring_Model__c> getScoringModels() {
+    Experian_Configuration__c setting = ExperianApiService.getBIQConfig();
+
+    List<Experian_Scoring_Model__c> scoringModels = [
+      SELECT Id, Name, Model_Code__c
+      FROM Experian_Scoring_Model__c
+      WHERE Experian_Configuration__c = :setting.Id
+    ];
+
+    return scoringModels;
+  }
+
+  @AuraEnabled
   public static String getJSONReport(String jsonData) {
     Map<String, Object> businessMap = (Map<String, Object>) JSON.deserializeUntyped(
       jsonData
@@ -37,13 +50,14 @@ public with sharing class PullReport {
       return res.getBody();
     } else {
       System.debug('Error Json response');
+      System.debug(req.getBody());
       return 'Error';
     }
   }
 
   @AuraEnabled
   public static String getPDFReport(String jsonData) {
-    System.debug('getJSON Report');
+    System.debug('getPDF Report');
     System.debug(jsonData);
     Map<String, Object> businessMap = (Map<String, Object>) JSON.deserializeUntyped(
       jsonData
@@ -77,6 +91,7 @@ public with sharing class PullReport {
     } else {
       System.debug('Error PDF report');
       System.debug('StatusCode: ' + res.getStatusCode());
+      System.debug(req.getBody());
       return 'Error';
     }
   }

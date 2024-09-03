@@ -1,0 +1,37 @@
+<template>
+  <lightning-card title="Business Report Configuration">
+    <div class="slds-m-around_medium">
+      <lightning-input
+        label="Business Name"
+        value={businessName}
+        onchange={handleInputChange}
+        data-field="businessName"
+        required
+      ></lightning-input>
+      <lightning-input
+        label="Address"
+        value={address}
+        onchange={handleInputChange}
+        data-field="address"
+      ></lightning-input>
+      <lightning-input
+        label="City"
+        value={city}
+        onchange={handleInputChange}
+        data-field="city"
+      ></lightning-input>
+      <lightning-input
+        label="State"
+        value={state}
+        onchange={handleInputChange}
+        data-field="state"
+      ></lightning-input>
+      <lightning-input
+        label="ZIP"
+        value={zip}
+        onchange={handleInputChange}
+        data-field="zip"
+      ></lightning-input>
+    </div>
+  </lightning-card>
+</template>

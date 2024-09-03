@@ -7,6 +7,7 @@ export default class RpReportSelection extends LightningElement {
   @track reportDescription = "";
   @api loading = false;
   @api business;
+  @api scoringModels = [];
 
   reportOptions = [
     { label: "Premier Profile", value: "premier" },
@@ -20,11 +21,12 @@ export default class RpReportSelection extends LightningElement {
       "The DecisionIQ Credit report provides detailed credit analysis and risk assessment to make informed business decisions."
   };
 
-  scoringModelOptions = [
-    { label: "INTELLISCORE PLUS V2", value: "intelliscore" },
-    { label: "IPV3", value: "ipv3" },
-    { label: "IPV3ML", value: "ipv3ml" }
-  ];
+  get scoringModelOptions() {
+    return this.scoringModels.map((model) => ({
+      label: model.Name,
+      value: model.Code
+    }));
+  }
 
   defaultOptions = [
     {
