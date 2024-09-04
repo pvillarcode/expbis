@@ -52,8 +52,8 @@
           value={formData.ssn}
           onchange={handleInputChange}
           required
-          pattern="[0-9]{3}-[0-9]{2}-[0-9]{4}"
-          placeholder="123-45-6789"
+          pattern="[0-9]{9}"
+          placeholder="123456789"
         ></lightning-input>
       </div>
 
@@ -84,6 +84,10 @@
             value={formData.state}
             onchange={handleInputChange}
             required
+            pattern="[A-Za-z]{2}"
+            placeholder="CA"
+            message-when-pattern-mismatch="Must be a valid 2 character state code"
+            message-when-too-short="Too short"
           ></lightning-input>
         </div>
         <div class="slds-col">
@@ -93,8 +97,8 @@
             value={formData.zip}
             onchange={handleInputChange}
             required
-            pattern="[0-9]{5}(-[0-9]{4})?"
-            placeholder="12345 or 12345-6789"
+            pattern="[0-9]{5}"
+            placeholder="12345"
           ></lightning-input>
         </div>
       </div>
@@ -106,7 +110,16 @@
       variant="brand"
       type="submit"
       label="Pull Report"
+      onclick={handleSubmit}
     ></lightning-button>
-    <lightning-button label="Cancel" onclick={handleCancel}></lightning-button>
+    <lightning-button label="Close" onclick={handleCancel}></lightning-button>
   </lightning-modal-footer>
+  <template if:true={isLoading}>
+    <div class="slds-is-relative slds-m-top_medium">
+      <lightning-spinner
+        alternative-text="Loading"
+        size="medium"
+      ></lightning-spinner>
+    </div>
+  </template>
 </template>

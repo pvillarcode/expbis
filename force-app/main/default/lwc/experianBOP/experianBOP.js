@@ -1,8 +1,10 @@
 import { LightningElement, api, track } from "lwc";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
+import getPDFReport from "@salesforce/apex/ExperianBOPController.pullAndSaveBOPReport";
 import { CloseActionScreenEvent } from "lightning/actions";
+import { NavigationMixin } from "lightning/navigation";
 
-export default class ExperianBOP extends LightningElement {
+export default class ExperianBOP extends NavigationMixin(LightningElement) {
   @api recordId; // To store the Account Id
   @track formData = {
     ownerLastName: "",
@@ -15,21 +17,67 @@ export default class ExperianBOP extends LightningElement {
     state: "",
     zip: ""
   };
+  isLoading = false;
 
   handleSubmit(event) {
     event.preventDefault();
-    // Here you would typically call an Apex method to save the data
-    console.log("Form submitted", this.formData);
-    // Show a success toast
-    this.dispatchEvent(
-      new ShowToastEvent({
-        title: "Success",
-        message: "Form submitted successfully",
-        variant: "success"
+    this.isLoading = true;
+    console.log("Form submitted", JSON.stringify(this.formData));
+    getPDFReport({
+      formData: JSON.stringify(this.formData),
+      accountId: this.recordId
+    })
+      .then((result) => {
+        console.log("Result:", result);
+
+        // Download the PDF in a new tab
+        //this.openPdfInNewTab(result);
+        this.openPdfInViewer(result);
+
+        // Show success toast
+        this.dispatchEvent(
+          new ShowToastEvent({
+            title: "Success",
+            message: "BOP Report pulled successfully",
+            variant: "success"
+          })
+        );
       })
+      .catch((error) => {
+        console.error("Error:", error);
+        this.dispatchEvent(
+          new ShowToastEvent({
+            title: "Error",
+            message: "An error occurred while pulling the BOP Report",
+            variant: "error"
+          })
+        );
+      })
+      .finally(() => {
+        this.isLoading = false;
+      });
+  }
+
+  openPdfInNewTab(contentDocumentId) {
+    window.open(
+      `/sfc/servlet.shepherd/document/download/${contentDocumentId}`,
+      "_blank"
     );
-    // Close the modal
-    this.closeModal();
+  }
+
+  openPdfInViewer(contentDocumentId) {
+    this[NavigationMixin.Navigate](
+      {
+        type: "standard__namedPage",
+        attributes: {
+          pageName: "filePreview"
+        },
+        state: {
+          selectedRecordId: contentDocumentId
+        }
+      },
+      true
+    ); // Set true to open in a new tab
   }
 
   handleInputChange(event) {
