@@ -1,0 +1,112 @@
+<template>
+  <lightning-modal-header
+    label="Business Owner Information"
+  ></lightning-modal-header>
+  <lightning-modal-body>
+    <form onsubmit={handleSubmit}>
+      <!-- Owner Information -->
+      <div class="slds-grid slds-gutters">
+        <div class="slds-col">
+          <lightning-input
+            label="Last Name"
+            name="ownerLastName"
+            value={formData.ownerLastName}
+            onchange={handleInputChange}
+            required
+          ></lightning-input>
+        </div>
+        <div class="slds-col">
+          <lightning-input
+            label="First Name"
+            name="ownerFirstName"
+            value={formData.ownerFirstName}
+            onchange={handleInputChange}
+            required
+          ></lightning-input>
+        </div>
+      </div>
+      <div class="slds-grid slds-gutters slds-m-top_small">
+        <div class="slds-col">
+          <lightning-input
+            label="Middle Name"
+            name="ownerMiddleName"
+            value={formData.ownerMiddleName}
+            onchange={handleInputChange}
+          ></lightning-input>
+        </div>
+        <div class="slds-col">
+          <lightning-input
+            label="Generation Code"
+            name="ownerGenerationCode"
+            value={formData.ownerGenerationCode}
+            onchange={handleInputChange}
+          ></lightning-input>
+        </div>
+      </div>
+
+      <!-- SSN -->
+      <div class="slds-m-top_small">
+        <lightning-input
+          label="SSN"
+          name="ssn"
+          value={formData.ssn}
+          onchange={handleInputChange}
+          required
+          pattern="[0-9]{3}-[0-9]{2}-[0-9]{4}"
+          placeholder="123-45-6789"
+        ></lightning-input>
+      </div>
+
+      <!-- Address Information -->
+      <div class="slds-m-top_small">
+        <lightning-input
+          label="Street"
+          name="street"
+          value={formData.street}
+          onchange={handleInputChange}
+          required
+        ></lightning-input>
+      </div>
+      <div class="slds-grid slds-gutters slds-m-top_small">
+        <div class="slds-col">
+          <lightning-input
+            label="City"
+            name="city"
+            value={formData.city}
+            onchange={handleInputChange}
+            required
+          ></lightning-input>
+        </div>
+        <div class="slds-col">
+          <lightning-input
+            label="State"
+            name="state"
+            value={formData.state}
+            onchange={handleInputChange}
+            required
+          ></lightning-input>
+        </div>
+        <div class="slds-col">
+          <lightning-input
+            label="Zip"
+            name="zip"
+            value={formData.zip}
+            onchange={handleInputChange}
+            required
+            pattern="[0-9]{5}(-[0-9]{4})?"
+            placeholder="12345 or 12345-6789"
+          ></lightning-input>
+        </div>
+      </div>
+    </form>
+  </lightning-modal-body>
+  <lightning-modal-footer>
+    <lightning-button
+      class="slds-m-right_small"
+      variant="brand"
+      type="submit"
+      label="Pull Report"
+    ></lightning-button>
+    <lightning-button label="Cancel" onclick={handleCancel}></lightning-button>
+  </lightning-modal-footer>
+</template>

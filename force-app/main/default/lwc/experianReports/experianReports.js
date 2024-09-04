@@ -1,15 +1,15 @@
 import { LightningElement, api, wire, track } from "lwc";
 import { NavigationMixin } from "lightning/navigation";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
-import getExperianReports from "@salesforce/apex/ExperianBusinessController.getExperianReports";
+import getExperianReports from "@salesforce/apex/ExperianReportsController.getExperianReports";
 
 const COLUMNS = [
   {
     label: "FILE NAME",
-    fieldName: "Title",
+    fieldName: "Name",
     type: "button",
     typeAttributes: {
-      label: { fieldName: "Title" },
+      label: { fieldName: "Name" },
       name: "view_file",
       title: "Click to View File",
       variant: "base"
@@ -33,7 +33,7 @@ const COLUMNS = [
   },
   {
     label: "REPORT PULLED BY",
-    fieldName: "CreatedBy",
+    fieldName: "CreatedByName",
     type: "text",
     sortable: true
   }
@@ -41,7 +41,7 @@ const COLUMNS = [
 
 export default class ExperianReports extends NavigationMixin(LightningElement) {
   @api recordId;
-  @track files = [];
+  @track reports = [];
   @track error;
   @track currentPage = 1;
   @track pageSize = 3;
@@ -52,23 +52,26 @@ export default class ExperianReports extends NavigationMixin(LightningElement) {
   columns = COLUMNS;
   isLoading = true;
 
-  wiredFilesResult;
+  wiredReportsResult;
 
   @wire(getExperianReports, {
     accountId: "$recordId",
     pageSize: "$pageSize",
     pageNumber: "$currentPage"
   })
-  wiredFiles(result) {
-    this.wiredFilesResult = result;
+  wiredReports(result) {
+    console.log("wiredReports called");
+    console.log(this.accountId);
+    this.wiredReportsResult = result;
     this.isLoading = true;
     const { data, error } = result;
     if (data) {
       console.log("Received data:", data);
-      this.files = this.transformData(data.records);
+      this.reports = this.transformData(data.records);
       this.totalRecords = data.totalRecords;
       this.error = undefined;
     } else if (error) {
+      console.error("Error loading reports:", error);
       this.handleError(error);
     }
     this.isLoading = false;
@@ -79,11 +82,19 @@ export default class ExperianReports extends NavigationMixin(LightningElement) {
       console.error("transformData received non-array data:", data);
       return [];
     }
-    return data.map((file) => ({
-      Id: file.ContentDocumentId,
-      Title: file.ContentDocument.Title,
-      CreatedDate: file.ContentDocument.CreatedDate,
-      CreatedBy: file.ContentDocument.CreatedBy.Name,
+    return data.map((report) => ({
+      Id: report.Id,
+      Name: report.Name,
+      CreatedDate: report.CreatedDate,
+      CreatedByName: report.CreatedBy.Name,
+      ContentDocumentId:
+        report.ContentDocumentLinks && report.ContentDocumentLinks.length > 0
+          ? report.ContentDocumentLinks[0].ContentDocumentId
+          : null,
+      FileType:
+        report.ContentDocumentLinks && report.ContentDocumentLinks.length > 0
+          ? report.ContentDocumentLinks[0].ContentDocument.FileType
+          : null,
       titleClass: "slds-text-link"
     }));
   }
@@ -93,34 +104,30 @@ export default class ExperianReports extends NavigationMixin(LightningElement) {
     const row = event.detail.row;
 
     if (actionName === "view_file") {
-      this.viewFile(row.Id);
+      this.viewFile(row.ContentDocumentId);
     }
   }
 
   viewFile(contentDocumentId) {
-    this[NavigationMixin.Navigate]({
-      type: "standard__namedPage",
-      attributes: {
-        pageName: "filePreview"
-      },
-      state: {
-        selectedRecordId: contentDocumentId
-      }
-    });
-  }
-
-  formatFileSize(bytes) {
-    if (bytes === 0) return "0 Bytes";
-    const k = 1024;
-    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    if (contentDocumentId) {
+      this[NavigationMixin.Navigate]({
+        type: "standard__namedPage",
+        attributes: {
+          pageName: "filePreview"
+        },
+        state: {
+          selectedRecordId: contentDocumentId
+        }
+      });
+    } else {
+      this.showToast("Error", "No file associated with this report", "error");
+    }
   }
 
   handleError(error) {
     console.error("Error:", error);
     this.error = error.body?.message || "Unknown error occurred";
-    this.files = undefined;
+    this.reports = undefined;
     this.showToast("Error", this.error, "error");
   }
 

@@ -100,18 +100,45 @@ public with sharing class PullReport {
   public static Id savePDFToSalesforce(
     String base64Data,
     String fileName,
-    Id customObjectId
+    Id accountId
   ) {
+    System.debug('Entering savePDFToSalesforce method');
+    System.debug('base64Data: ' + base64Data);
+    System.debug('fileName: ' + fileName);
+    System.debug('accountId: ' + accountId);
+
     if (
       String.isBlank(base64Data) ||
       String.isBlank(fileName) ||
-      customObjectId == null
+      accountId == null
     ) {
+      System.debug('Invalid input detected');
       throw new AuraHandledException(
-        'Invalid input: base64Data, fileName, and customObjectId are required.'
+        'Invalid input: base64Data, fileName, and accountId are required.'
       );
     }
+
+    // Create new Experian_Report__c record
+    Experian_Report__c experianReport = new Experian_Report__c(
+      Account__c = accountId,
+      Name = fileName
+    );
+
+    System.debug('Experian_Report__c record created: ' + experianReport);
+
+    if (!Schema.sObjectType.Experian_Report__c.isCreateable()) {
+      System.debug(
+        'Insufficient permissions to create Experian_Report__c record'
+      );
+      throw new AuraHandledException(
+        'Insufficient permissions to create Experian_Report__c record.'
+      );
+    }
+    insert experianReport;
+    System.debug('Experian_Report__c record inserted: ' + experianReport.Id);
+
     if (!Schema.sObjectType.ContentVersion.isCreateable()) {
+      System.debug('Insufficient permissions to create PDF file');
       throw new AuraHandledException(
         'Insufficient permissions to create PDF file.'
       );
@@ -121,23 +148,27 @@ public with sharing class PullReport {
     cv.Title = fileName;
     cv.PathOnClient = fileName + '.pdf';
     insert cv;
+    System.debug('ContentVersion record inserted: ' + cv.Id);
 
     if (!Schema.sObjectType.ContentDocumentLink.isCreateable()) {
+      System.debug('Insufficient permissions to create ContentDocumentLink');
       throw new AuraHandledException(
         'Insufficient permissions to create ContentDocumentLink.'
       );
     }
     cv = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
+    System.debug('ContentDocumentId retrieved: ' + cv.ContentDocumentId);
 
     ContentDocumentLink cdl = new ContentDocumentLink();
     cdl.ContentDocumentId = cv.ContentDocumentId;
-    cdl.LinkedEntityId = customObjectId;
+    cdl.LinkedEntityId = experianReport.Id; // Link to the new Experian_Report__c record
     cdl.ShareType = 'V';
     insert cdl;
+    System.debug('ContentDocumentLink record inserted: ' + cdl.Id);
 
-    return cv.ContentDocumentId;
+    System.debug('Exiting savePDFToSalesforce method');
+    return experianReport.Id; // Return the Id of the new Experian_Report__c record
   }
-
   @AuraEnabled
   public static Id saveExperianInformation(String jsonData) {
     try {
@@ -151,7 +182,7 @@ public with sharing class PullReport {
       Id accountId = findOrcreateAccount(results);
       Id businessId = getOrUpdateBusiness(results, accountId);
 
-      return businessId;
+      return accountId;
     } catch (Exception e) {
       throw new AuraHandledException(
         'Error saving Experian Business Information: ' + e.getMessage()

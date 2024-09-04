@@ -55,7 +55,7 @@ public with sharing class AlertRegistrationController {
       ];
 
       String query =
-        'SELECT Id, Name, AccountNumber ' +
+        'SELECT Id, Name, Experian_AMS_Registration_status__c ' +
         'FROM ' +
         String.escapeSingleQuotes(lv.SobjectType) +
         ' LIMIT :recordLimit OFFSET :offset';
@@ -71,40 +71,53 @@ public with sharing class AlertRegistrationController {
   }
 
   @AuraEnabled
-  public static void registerAMS(List<Id> accountIds, String listViewId) {
+  public static String registerAMS(List<Id> accountIds, String listViewId) {
+    System.debug(
+      'registerAMS method called with accountIds: ' +
+        accountIds +
+        ' and listViewId: ' +
+        listViewId
+    );
     try {
-      List<Account> accountsToProcess;
+      Experian_BatchAMSRegistration batchJob;
+
       if (listViewId != null) {
+        System.debug(
+          'listViewId is not null, processing all accounts in the list view'
+        );
         // Process all accounts in the list view
         ListView lv = [
           SELECT Id, Name, DeveloperName, SobjectType
           FROM ListView
           WHERE Id = :listViewId
         ];
-        String query =
-          'SELECT Id, Name FROM ' + String.escapeSingleQuotes(lv.SobjectType);
-        accountsToProcess = Database.query(query);
+        System.debug('ListView retrieved: ' + lv);
+
+        // Create a batch job that will query the accounts in batches
+        batchJob = new Experian_BatchAMSRegistration(listViewId);
       } else if (accountIds != null && !accountIds.isEmpty()) {
+        System.debug(
+          'accountIds is not null and not empty, processing selected accounts'
+        );
         // Process only selected accounts
-        accountsToProcess = [
-          SELECT Id, Name
-          FROM Account
-          WHERE Id IN :accountIds
-        ];
+        batchJob = new Experian_BatchAMSRegistration(accountIds);
       } else {
+        System.debug('No accounts specified for registration');
         throw new AuraHandledException(
           'No accounts specified for registration'
         );
       }
 
-      for (Account acc : accountsToProcess) {
-        System.debug('Registering AMS for account: ' + acc.Name);
-        // Implement your AMS registration logic here
-      }
+      // Start the batch process
+      System.debug('Starting batch process for AMS registration');
+      Id batchId = Database.executeBatch(batchJob, 200); // Process 200 records at a time
+      System.debug('Batch job started with ID: ' + batchId);
+
+      return 'Batch job started with ID: ' + batchId;
     } catch (Exception e) {
-      System.debug('Error registering AMS: ' + e.getMessage());
+      System.debug('Error initiating AMS registration: ' + e.getMessage());
       throw new AuraHandledException(
-        'Error registering AMS: ' + e.getMessage()
+        'Error initiating AMS registration: ' + e.getMessage()
       );
     }
   }

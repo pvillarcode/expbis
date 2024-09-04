@@ -150,18 +150,18 @@ export default class RpPullReportTab extends NavigationMixin(LightningElement) {
       const url = window.URL.createObjectURL(blob);
       window.open(url, "_blank");
 
-      const experianBusinessId = await saveExperianInformation({
+      const accountId = await saveExperianInformation({
         jsonData: jsonResult
       });
-      console.log("Saved to Salesforce with ID: ", experianBusinessId);
+      console.log("Saved to Salesforce with for account ID: ", accountId);
 
-      if (experianBusinessId) {
+      if (accountId) {
         const fileName = "PremierProfile_" + new Date().getTime();
         try {
           const contentDocumentId = await savePDFToSalesforce({
             base64Data: base64PDF,
             fileName: fileName,
-            customObjectId: experianBusinessId
+            accountId: accountId
           });
           console.log("Saved to Salesforce with ID: ", contentDocumentId);
         } catch (error) {
@@ -182,7 +182,7 @@ export default class RpPullReportTab extends NavigationMixin(LightningElement) {
       this[NavigationMixin.Navigate]({
         type: "standard__recordPage",
         attributes: {
-          recordId: experianBusinessId,
+          recordId: accountId,
           objectApiName: "ExperianBusiness__c", // Replace with the actual API name of the object
           actionName: "view"
         }

@@ -24,7 +24,7 @@ export default class RpReportSelection extends LightningElement {
   get scoringModelOptions() {
     return this.scoringModels.map((model) => ({
       label: model.Name,
-      value: model.Code
+      value: model.Model_Code__c
     }));
   }
 
@@ -39,11 +39,22 @@ export default class RpReportSelection extends LightningElement {
   connectedCallback() {
     console.log(this.business);
     this.updateReportDescription(this.value);
+    if (this.scoringModels.length > 0) {
+      this.selectedModel = this.scoringModels[0].Model_Code__c;
+    }
   }
 
   handleReportChange(event) {
     this.value = event.detail.value;
     this.updateReportDescription(this.value);
+  }
+
+  handleScoringModelChange(event) {
+    this.selectedModel = event.detail.value;
+    console.log(this.selectedModel);
+    // Force refresh if needed
+    this.template.querySelector("lightning-radio-group").value =
+      this.selectedModel;
   }
 
   updateReportDescription(reportKey) {

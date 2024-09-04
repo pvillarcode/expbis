@@ -48,11 +48,13 @@
             </div>
           </div>
           <div class="slds-border-top slds-p-top_medium">
+            <!--
             <lightning-button
               label="Add business owner"
               variant="neutral"
               class="slds-m-top_small"
             ></lightning-button>
+            -->
           </div>
         </div>
       </div>
@@ -101,8 +103,10 @@
             <div class="slds-form-element__control">
               <lightning-radio-group
                 name="scoringModel"
+                label="Select scoring model"
                 options={scoringModelOptions}
                 value={selectedModel}
+                onchange={handleScoringModelChange}
                 type="radio"
               ></lightning-radio-group>
             </div>

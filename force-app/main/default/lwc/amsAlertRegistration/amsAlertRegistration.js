@@ -22,7 +22,11 @@ export default class AmsAlertRegistration extends LightningElement {
 
   columns = [
     { label: "Account Name", fieldName: "Name", type: "text" },
-    { label: "Account Number", fieldName: "AccountNumber", type: "text" }
+    {
+      label: "Registration Status",
+      fieldName: "Experian_AMS_Registration_status__c",
+      type: "text"
+    }
   ];
 
   selectAllOptions = [{ label: "Select All", value: "selectAll" }];

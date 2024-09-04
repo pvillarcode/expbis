@@ -68,33 +68,27 @@ global with sharing class FlowPullReportService {
           jsonResponse
         );
 
-        // Update the Experian Business record with the Account ID
-        updateExperianBusinessWithAccount(
-          experianBusinessId,
-          request.accountId
-        );
-
         // Extract Base64 encoded PDF from JSON response
         Map<String, Object> pdfResponseMap = (Map<String, Object>) JSON.deserializeUntyped(
           pdfResponse
         );
         String base64EncodedPdf = (String) pdfResponseMap.get('results');
 
-        // Save PDF to Salesforce and link to Experian Business record
-        Experian_Business__c business = [
-          SELECT Name
-          FROM Experian_Business__c
-          WHERE Id = :experianBusinessId
-        ];
-        String fileName = business.Name + ' Report pulled by Flows.pdf';
+        // Create Experian_Report__c record
+        Experian_Report__c experianReport = new Experian_Report__c(
+          Account__c = request.accountId,
+          Name = request.businessName + ' Report - Flows '
+        );
+        insert experianReport;
 
+        // Save PDF to Salesforce and link to Experian_Report__c record
         ContentVersion cv = new ContentVersion();
         cv.VersionData = EncodingUtil.base64Decode(base64EncodedPdf);
-        cv.Title = fileName;
-        cv.PathOnClient = fileName;
+        cv.Title = experianReport.Name;
+        cv.PathOnClient = experianReport.Name + '.pdf';
         insert cv;
 
-        // Link ContentVersion to Experian Business record
+        // Link ContentVersion to Experian_Report__c record
         ContentDocumentLink cdl = new ContentDocumentLink();
         cdl.ContentDocumentId = [
           SELECT ContentDocumentId
@@ -102,7 +96,7 @@ global with sharing class FlowPullReportService {
           WHERE Id = :cv.Id
         ]
         .ContentDocumentId;
-        cdl.LinkedEntityId = experianBusinessId;
+        cdl.LinkedEntityId = experianReport.Id;
         cdl.ShareType = 'V';
         insert cdl;
       } else {
@@ -110,8 +104,13 @@ global with sharing class FlowPullReportService {
       }
     } catch (Exception e) {
       // Log the error or send a notification
-      System.debug(
-        'Error in processBusinessReportFuture method: ' + e.getMessage()
+      ExperianLogger.log(
+        'Error in processBusinessReportFuture method: ' + e.getMessage(),
+        ExperianLogger.LogLevel.ERROR
+      );
+      ExperianLogger.log(
+        'Stack Trace: ' + e.getStackTraceString(),
+        ExperianLogger.LogLevel.ERROR
       );
     }
   }
