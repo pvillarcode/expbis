@@ -1,27 +1,34 @@
 import { LightningElement, api, wire } from "lwc";
-import { NavigationMixin } from "lightning/navigation";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
-import getAllDecisions from "@salesforce/apex/ExperianDecisionController.getAllDecisions";
 import pullNewDecision from "@salesforce/apex/ExperianDecisionController.pullNewDecision";
-import refreshApex from "@salesforce/apex";
+import getAllDecisions from "@salesforce/apex/ExperianDecisionController.getAllDecisions";
+import { refreshApex } from "@salesforce/apex";
+import { NavigationMixin } from "lightning/navigation";
 
 export default class ExperianDecisions extends NavigationMixin(
   LightningElement
 ) {
   @api recordId;
+  @api accountId;
   currentDecision = {};
   priorDecisions = [];
-  error;
+  isLoading = false;
+  wiredDecisionsResult;
 
   @wire(getAllDecisions, { accountId: "$recordId" })
-  wiredDecisions({ error, data }) {
+  wiredDecisions(result) {
+    this.wiredDecisionsResult = result;
+    const { error, data } = result;
     if (data) {
       this.processDecisions(data);
       this.error = undefined;
     } else if (error) {
-      this.error = error;
-      this.currentDecision = {};
-      this.priorDecisions = [];
+      console.error("Error fetching decisions", error);
+      this.showToast(
+        "Error",
+        "Failed to fetch decisions: " + error.body.message,
+        "error"
+      );
     }
   }
 
@@ -32,7 +39,7 @@ export default class ExperianDecisions extends NavigationMixin(
         .slice(1)
         .map((decision) => this.formatDecision(decision));
     } else {
-      this.currentDecision = {};
+      this.currentDecision = this.getEmptyDecision();
       this.priorDecisions = [];
     }
   }
@@ -40,7 +47,7 @@ export default class ExperianDecisions extends NavigationMixin(
   formatDecision(decision) {
     return {
       id: decision.Id,
-      date: decision.CreatedDate,
+      date: this.formatDate(decision.CreatedDate),
       score: decision.Score__c,
       decision: decision.Decision__c,
       creditLimit: decision.Credit_Limit__c,
@@ -72,11 +79,16 @@ export default class ExperianDecisions extends NavigationMixin(
     }
   }
 
-  formatDate(dateString) {
-    if (!dateString) return "N/A";
+  formatDate = (dateString) => {
+    if (!dateString) {
+      return "N/A";
+    }
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+      return "Invalid Date";
+    }
     return date.toISOString().split("T")[0];
-  }
+  };
 
   getEmptyDecision() {
     return {
