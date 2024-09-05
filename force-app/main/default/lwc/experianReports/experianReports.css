@@ -1,14 +1,18 @@
-.slds-card {
+.experian-reports-container {
+  border: 1px solid #dddbda;
+  border-radius: 0.25rem;
+  background-color: #ffffff;
   box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.1);
+  margin: 0.75rem 0;
 }
 
-.slds-card__header {
-  background-color: #f3f2f2;
-  border-bottom: 1px solid #dddbda;
+.experian-reports-header {
+  padding: 0.75rem 1rem;
+  /* Removed border-bottom */
 }
 
-.slds-card__body {
-  min-height: 300px;
+.experian-reports-body {
+  padding: 0.75rem;
 }
 
 .slds-text-align_center {
@@ -22,4 +26,16 @@
 
 .slds-button-icon_container:hover:not(:disabled) {
   color: #1b96ff;
+}
+
+/* Ensure the header title has the correct styling */
+.slds-card__header-title {
+  font-size: 1rem;
+  line-height: 1.25;
+  font-weight: 700;
+}
+
+/* Add some space between the header and the table */
+.experian-reports-body .slds-datatable {
+  margin-top: 0.75rem;
 }

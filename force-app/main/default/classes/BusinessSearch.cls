@@ -146,6 +146,87 @@ public with sharing class BusinessSearch {
     return results;
   }
 
+  @AuraEnabled
+  public static Experian_Business__c createExperianBusinessFromAccount(
+    Id accountId
+  ) {
+    try {
+      // Get account details
+      Account acc = getAccountDetails(accountId);
+
+      // Create a placeholder Experian_Business__c record
+      Experian_Business__c experianBusiness = new Experian_Business__c(
+        Name = acc.Name,
+        Account__c = accountId,
+        Street_Address__c = acc.BillingStreet,
+        City__c = acc.BillingCity,
+        State__c = acc.BillingState,
+        Zip__c = acc.BillingPostalCode
+      );
+
+      insert experianBusiness;
+
+      // Call the future method to update the record with Experian data
+      updateExperianBusinessAsync(
+        experianBusiness.Id,
+        acc.Name,
+        acc.BillingStreet,
+        acc.BillingCity,
+        acc.BillingState,
+        acc.BillingPostalCode
+      );
+
+      return experianBusiness;
+    } catch (Exception e) {
+      System.debug(
+        'Error in createExperianBusinessFromAccount: ' + e.getMessage()
+      );
+      return null;
+    }
+  }
+
+  @future(callout=true)
+  public static void updateExperianBusinessAsync(
+    Id experianBusinessId,
+    String name,
+    String street,
+    String city,
+    String state,
+    String zipCode
+  ) {
+    try {
+      // Prepare search criteria
+      Map<String, String> searchCriteria = new Map<String, String>{
+        KEY_BUSINESS_NAME => name,
+        KEY_ADDRESS => street,
+        KEY_CITY => city,
+        KEY_STATE => state,
+        KEY_ZIPCODE => zipCode
+      };
+
+      // Perform the search
+      List<BusinessResult> results = getLOS(searchCriteria);
+
+      if (!results.isEmpty()) {
+        // Take the first result
+        BusinessResult firstResult = results[0];
+
+        // Update the Experian_Business__c record
+        Experian_Business__c experianBusiness = [
+          SELECT Id
+          FROM Experian_Business__c
+          WHERE Id = :experianBusinessId
+        ];
+        experianBusiness.BIN__c = firstResult.bin;
+        // Update other fields as necessary
+
+        update experianBusiness;
+      }
+    } catch (Exception e) {
+      System.debug('Error in updateExperianBusinessAsync: ' + e.getMessage());
+    }
+  }
+
   @AuraEnabled(cacheable=true)
   public static Account getAccountDetails(Id accountId) {
     return [

@@ -1,37 +1,43 @@
 <template>
-  <lightning-card title="Experian Reports" icon-name="standard:document">
-    <div class="slds-m-around_medium">
-      <template if:true={isLoading}>
-        <lightning-spinner
-          alternative-text="Loading"
-          size="small"
-        ></lightning-spinner>
-      </template>
-      <template if:false={isLoading}>
-        <lightning-datatable
-          key-field="Id"
-          data={reports}
-          columns={columns}
-          hide-checkbox-column
-          onrowaction={handleRowAction}
-        >
-        </lightning-datatable>
-        <div class="slds-m-top_small">
-          <lightning-button-group>
-            <lightning-button
-              label="Previous"
-              onclick={previousPage}
-              disabled={isFirstPage}
-            ></lightning-button>
-            <lightning-button
-              label="Next"
-              onclick={nextPage}
-              disabled={isLastPage}
-            ></lightning-button>
-          </lightning-button-group>
-          <span class="slds-m-left_small">{pageInfo}</span>
+  <div class="experian-reports-container">
+    <div
+      class="experian-reports-header slds-grid slds-grid_vertical-align-center"
+    >
+      <div class="slds-media slds-media_center slds-has-flexi-truncate">
+        <div class="slds-media__figure">
+          <lightning-icon
+            icon-name="standard:document"
+            alternative-text="Experian Reports"
+            size="small"
+          ></lightning-icon>
         </div>
-      </template>
+        <div class="slds-media__body">
+          <h2 class="slds-card__header-title">Experian Reports</h2>
+        </div>
+      </div>
     </div>
-  </lightning-card>
+    <div class="experian-reports-body">
+      <lightning-datatable
+        key-field="Id"
+        data={reports}
+        columns={columns}
+        hide-checkbox-column
+        onrowaction={handleRowAction}
+      >
+      </lightning-datatable>
+      <div class="slds-grid slds-grid_align-spread slds-m-top_small">
+        <lightning-button
+          label="Previous"
+          onclick={previousPage}
+          disabled={isFirstPage}
+        ></lightning-button>
+        <div class="slds-m-top_xx-small">{pageInfo}</div>
+        <lightning-button
+          label="Next"
+          onclick={nextPage}
+          disabled={isLastPage}
+        ></lightning-button>
+      </div>
+    </div>
+  </div>
 </template>

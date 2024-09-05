@@ -1,0 +1,47 @@
+/* decisionHistory.css */
+.slds-text-color_warning {
+  color: #ffb75d;
+}
+
+.slds-text-color_error {
+  color: #c23934;
+}
+
+.slds-text-color_success {
+  color: #04844b;
+}
+
+.slds-text-color_weak {
+  color: #706e6b;
+}
+
+.slds-card_boundary {
+  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.1);
+}
+
+.current-decision {
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.current-decision:hover {
+  background-color: #f3f2f2;
+}
+
+.prior-decisions-container thead th {
+  position: sticky;
+  top: 0;
+  background-color: #f3f2f2;
+  z-index: 1;
+}
+.prior-decisions-table {
+  /* Ensure the table header stays in place when scrolling */
+  position: relative;
+}
+
+.prior-decisions-table thead {
+  position: sticky;
+  top: 0;
+  background-color: #f3f2f2;
+  z-index: 1;
+}
