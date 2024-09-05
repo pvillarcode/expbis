@@ -194,6 +194,14 @@ public with sharing class BusinessSearch {
     String state,
     String zipCode
   ) {
+    System.debug('updateExperianBusinessAsync called with parameters:');
+    System.debug('experianBusinessId: ' + experianBusinessId);
+    System.debug('name: ' + name);
+    System.debug('street: ' + street);
+    System.debug('city: ' + city);
+    System.debug('state: ' + state);
+    System.debug('zipCode: ' + zipCode);
+
     try {
       // Prepare search criteria
       Map<String, String> searchCriteria = new Map<String, String>{
@@ -203,13 +211,16 @@ public with sharing class BusinessSearch {
         KEY_STATE => state,
         KEY_ZIPCODE => zipCode
       };
+      System.debug('Search criteria: ' + searchCriteria);
 
       // Perform the search
       List<BusinessResult> results = getLOS(searchCriteria);
+      System.debug('Search results: ' + results);
 
       if (!results.isEmpty()) {
         // Take the first result
         BusinessResult firstResult = results[0];
+        System.debug('First search result: ' + firstResult);
 
         // Update the Experian_Business__c record
         Experian_Business__c experianBusiness = [
@@ -217,10 +228,18 @@ public with sharing class BusinessSearch {
           FROM Experian_Business__c
           WHERE Id = :experianBusinessId
         ];
+        System.debug(
+          'Queried Experian_Business__c record: ' + experianBusiness
+        );
+
         experianBusiness.BIN__c = firstResult.bin;
+        System.debug('Updated BIN__c: ' + experianBusiness.BIN__c);
         // Update other fields as necessary
 
         update experianBusiness;
+        System.debug('Experian_Business__c record updated successfully.');
+      } else {
+        System.debug('No search results found.');
       }
     } catch (Exception e) {
       System.debug('Error in updateExperianBusinessAsync: ' + e.getMessage());

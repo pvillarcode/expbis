@@ -5,7 +5,7 @@ import getExperianReports from "@salesforce/apex/ExperianReportsController.getEx
 
 const COLUMNS = [
   {
-    label: "FILE NAME",
+    label: "File Name",
     fieldName: "Name",
     type: "button",
     typeAttributes: {
@@ -19,7 +19,7 @@ const COLUMNS = [
     }
   },
   {
-    label: "DATE",
+    label: "Date",
     fieldName: "CreatedDate",
     type: "date",
     sortable: true,
@@ -32,7 +32,7 @@ const COLUMNS = [
     }
   },
   {
-    label: "REPORT PULLED BY",
+    label: "Report Pulled By",
     fieldName: "CreatedByName",
     type: "text",
     sortable: true
@@ -44,7 +44,7 @@ export default class ExperianReports extends NavigationMixin(LightningElement) {
   @track reports = [];
   @track error;
   @track currentPage = 1;
-  @track pageSize = 5;
+  @track pageSize = 10;
   @track totalRecords = 0;
   @track sortBy;
   @track sortDirection;
@@ -52,26 +52,18 @@ export default class ExperianReports extends NavigationMixin(LightningElement) {
   columns = COLUMNS;
   isLoading = true;
 
-  wiredReportsResult;
-
   @wire(getExperianReports, {
     accountId: "$recordId",
     pageSize: "$pageSize",
     pageNumber: "$currentPage"
   })
-  wiredReports(result) {
-    console.log("wiredReports called");
-    console.log(this.accountId);
-    this.wiredReportsResult = result;
+  wiredReports({ error, data }) {
     this.isLoading = true;
-    const { data, error } = result;
     if (data) {
-      console.log("Received data:", data);
       this.reports = this.transformData(data.records);
       this.totalRecords = data.totalRecords;
       this.error = undefined;
     } else if (error) {
-      console.error("Error loading reports:", error);
       this.handleError(error);
     }
     this.isLoading = false;
@@ -166,5 +158,13 @@ export default class ExperianReports extends NavigationMixin(LightningElement) {
     const start = (this.currentPage - 1) * this.pageSize + 1;
     const end = Math.min(start + this.pageSize - 1, this.totalRecords);
     return `${start}-${end} of ${this.totalRecords}`;
+  }
+
+  get hasReports() {
+    return this.reports.length > 0;
+  }
+
+  get noReportsMessage() {
+    return "No Experian reports found for this account.";
   }
 }

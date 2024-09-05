@@ -3,11 +3,8 @@ import { ShowToastEvent } from "lightning/platformShowToastEvent";
 import pullNewDecision from "@salesforce/apex/ExperianDecisionController.pullNewDecision";
 import getAllDecisions from "@salesforce/apex/ExperianDecisionController.getAllDecisions";
 import { refreshApex } from "@salesforce/apex";
-import { NavigationMixin } from "lightning/navigation";
 
-export default class ExperianDecisions extends NavigationMixin(
-  LightningElement
-) {
+export default class DecisionHistory extends LightningElement {
   @api recordId;
   @api accountId;
   currentDecision = {};
@@ -21,7 +18,6 @@ export default class ExperianDecisions extends NavigationMixin(
     const { error, data } = result;
     if (data) {
       this.processDecisions(data);
-      this.error = undefined;
     } else if (error) {
       console.error("Error fetching decisions", error);
       this.showToast(
@@ -57,38 +53,24 @@ export default class ExperianDecisions extends NavigationMixin(
     };
   }
 
-  handleRowAction(event) {
-    const recordId = event.detail.row.id;
-    this.navigateToRecordPage(recordId);
-  }
-
-  navigateToRecordPage(recordId) {
-    this[NavigationMixin.Navigate]({
-      type: "standard__recordPage",
-      attributes: {
-        recordId: recordId,
-        objectApiName: "Experian_Decision__c",
-        actionName: "view"
-      }
-    });
-  }
-
-  handleCurrentDecisionClick() {
-    if (this.currentDecision.id) {
-      this.navigateToRecordPage(this.currentDecision.id);
-    }
-  }
-
-  formatDate = (dateString) => {
-    if (!dateString) {
-      return "N/A";
-    }
+  formatDate(dateString) {
+    if (!dateString) return "N/A";
     const date = new Date(dateString);
-    if (isNaN(date.getTime())) {
-      return "Invalid Date";
-    }
-    return date.toISOString().split("T")[0];
-  };
+    return new Intl.DateTimeFormat("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric"
+    }).format(date);
+  }
+
+  formatCurrency(amount) {
+    if (!amount) return "N/A";
+    console.log(amount);
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD"
+    }).format(amount);
+  }
 
   getEmptyDecision() {
     return {
@@ -110,7 +92,6 @@ export default class ExperianDecisions extends NavigationMixin(
         if (result.success === false) {
           this.showToast("Error", result.message, "error");
         } else {
-          // Refresh all decisions after pulling a new one
           refreshApex(this.wiredDecisionsResult);
         }
       })
@@ -155,9 +136,9 @@ export default class ExperianDecisions extends NavigationMixin(
   getStatusIcon(decision) {
     switch (decision.toUpperCase()) {
       case "APPROVE":
-        return "utility:check";
+        return "utility:success";
       case "DECLINE":
-        return "utility:close";
+        return "utility:error";
       case "MANUAL REVIEW":
         return "utility:warning";
       default:

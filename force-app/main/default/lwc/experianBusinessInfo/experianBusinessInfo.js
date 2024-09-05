@@ -1,32 +1,21 @@
+// ExperianBusinessInfo.js
 import { LightningElement, wire, track } from "lwc";
 import { CurrentPageReference } from "lightning/navigation";
 import getExperianBusinessInfo from "@salesforce/apex/ExperianBusinessController.getExperianBusinessInfo";
 
 export default class ExperianBusinessInfo extends LightningElement {
   accountId;
-  @track experianBusinessRecords = {
-    Commercial_Score__c: "N/A",
-    FSR_Score__c: "N/A",
-    Credit_Limit_Recommendation__c: "N/A",
-    Days_Beyond_Terms__c: "N/A",
-    Derogatory_Legal__c: "0",
-    Fraud_Alerts__c: "N/A",
-    Industry_DBT__c: "N/A"
-  };
+  @track experianBusinessRecords = {};
+  hasData = false;
 
   @wire(CurrentPageReference)
-  currentPageReference(currentPageReference) {
+  setCurrentPageReference(currentPageReference) {
     if (currentPageReference && currentPageReference.attributes.recordId) {
       this.accountId = currentPageReference.attributes.recordId;
-      console.log("Account Id: ", this.accountId);
       this.loadExperianBusinessData();
     } else {
       console.error("No Account Id provided");
     }
-  }
-
-  get recordId() {
-    return this.currentPageReference?.attributes?.recordId || null;
   }
 
   loadExperianBusinessData() {
@@ -38,14 +27,17 @@ export default class ExperianBusinessInfo extends LightningElement {
     getExperianBusinessInfo({ accountId: this.accountId })
       .then((result) => {
         if (result && result.length > 0) {
-          this.experianBusinessRecords = result[0]; // Assuming result is an array and we need the first record
+          this.experianBusinessRecords = result[0];
+          this.hasData = true;
         } else {
-          this.experianBusinessRecords = {}; // Handle case where no records are returned
+          this.experianBusinessRecords = {};
+          this.hasData = false;
         }
-        console.log("Experian Business Data: ", result);
+        console.log("Experian Business Data: ", this.experianBusinessRecords);
       })
       .catch((error) => {
         console.error("Error loading Experian Business data", error);
+        this.hasData = false;
       });
   }
 

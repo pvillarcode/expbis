@@ -24,12 +24,17 @@ public with sharing class ExperianDecisionController {
 
   @AuraEnabled
   public static Map<String, Object> pullNewDecision(String accountId) {
+    System.debug('pullNewDecision called with accountId: ' + accountId);
     try {
       Experian_Business__c experianBusiness = getExperianBusinessForAccount(
         accountId
       );
+      System.debug('Experian Business record: ' + experianBusiness);
 
       if (experianBusiness == null) {
+        System.debug(
+          'No Experian Business record found or created for this account.'
+        );
         return new Map<String, Object>{
           'success' => false,
           'message' => 'No Experian Business record found or created for this account.'
@@ -37,6 +42,8 @@ public with sharing class ExperianDecisionController {
       }
 
       if (String.isBlank(experianBusiness.BIN__c)) {
+        System.debug('Experian Business record is being processed.');
+        System.debug(experianBusiness);
         return new Map<String, Object>{
           'success' => false,
           'message' => 'Experian Business record is being processed. Please try again in a few moments.'
@@ -44,11 +51,16 @@ public with sharing class ExperianDecisionController {
       }
 
       // Call the API using the separate method
+      System.debug(
+        'Calling getDecisionApiCall with BIN: ' + experianBusiness.BIN__c
+      );
       Map<String, Object> apiResponse = getDecisionApiCall(
         experianBusiness.BIN__c
       );
+      System.debug('API Response: ' + apiResponse);
 
       if (apiResponse.containsKey('error')) {
+        System.debug('API returned an error: ' + apiResponse.get('error'));
         return new Map<String, Object>{
           'success' => false,
           'message' => (String) apiResponse.get('error')
@@ -56,16 +68,20 @@ public with sharing class ExperianDecisionController {
       }
 
       // Process the successful response
+      System.debug('Creating Experian Decision record');
       Experian_Decision__c newDecision = createExperianDecisionRecord(
         accountId,
         apiResponse
       );
+      System.debug('New Experian Decision record: ' + newDecision);
 
       return new Map<String, Object>{
         'success' => true,
-        'decision' => newDecision
+        'decision' => newDecision,
+        'message' => 'Experian Decision pulled successfully.'
       };
     } catch (Exception e) {
+      System.debug('Exception occurred: ' + e.getMessage());
       ExperianLogger.log(
         'Error pulling new decision: ' + e.getMessage(),
         ExperianLogger.LogLevel.ERROR
@@ -171,22 +187,35 @@ public with sharing class ExperianDecisionController {
   private static Experian_Business__c getExperianBusinessForAccount(
     String accountId
   ) {
+    System.debug(
+      'getExperianBusinessForAccount called with accountId: ' + accountId
+    );
+
     List<Experian_Business__c> experianBusinesses = [
       SELECT Id, BIN__c
       FROM Experian_Business__c
       WHERE Account__c = :accountId
       LIMIT 1
     ];
+    System.debug('Queried Experian_Business__c records: ' + experianBusinesses);
 
-    if (!experianBusinesses.isEmpty()) {
+    if (!experianBusinesses.isEmpty() && experianBusinesses[0].BIN__c != null) {
+      System.debug(
+        'Found existing Experian_Business__c record with BIN__c: ' +
+        experianBusinesses[0].BIN__c
+      );
       return experianBusinesses[0];
     }
 
     // If no existing record, try to create one
     try {
+      System.debug(
+        'No existing Experian_Business__c record found, attempting to create a new one.'
+      );
       Experian_Business__c newBusiness = BusinessSearch.createExperianBusinessFromAccount(
         accountId
       );
+      System.debug('Created new Experian_Business__c record: ' + newBusiness);
       if (newBusiness != null) {
         return newBusiness;
       }
@@ -197,6 +226,9 @@ public with sharing class ExperianDecisionController {
     }
 
     // If we couldn't find or create a record, return null
+    System.debug(
+      'No Experian_Business__c record found or created, returning null.'
+    );
     return null;
   }
 

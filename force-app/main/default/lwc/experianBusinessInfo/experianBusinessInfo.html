@@ -1,68 +1,79 @@
 <template>
-  <lightning-card title="Experian Risk Dashboard">
-    <div class="slds-grid slds-gutters">
-      <!-- First Column -->
-      <div class="slds-col slds-size_1-of-2">
-        <div class="slds-grid slds-wrap">
-          <!-- Intelliscore -->
-          <div class="slds-col slds-size_1-of-2 small-box">
-            <div class="section-title">
-              Risk Scores and Credit Limit Recommendation
+  <lightning-card title="Experian Risk Dashboard" icon-name="standard:account">
+    <template if:true={hasData}>
+      <div class="slds-grid slds-gutters">
+        <!-- First Column -->
+        <div class="slds-col slds-size_1-of-2">
+          <div class="slds-grid slds-wrap">
+            <!-- Intelliscore -->
+            <div class="slds-col slds-size_1-of-2 small-box">
+              <div class="section-title">
+                Risk Scores and Credit Limit Recommendation
+              </div>
+              <div class="score-box">
+                <div class="score-type">Intelliscore</div>
+                <div class="score-value">{intelliscore}</div>
+                <div class="credit-limit">
+                  Credit Limit Recommendation: ${creditLimitRecommendation}
+                </div>
+              </div>
             </div>
-            <div class="score-box">
-              <div class="score-type">Intelliscore</div>
-              <div class="score-value">{intelliscore}</div>
-              <div class="credit-limit">
-                Credit Limit Recommendation: ${creditLimitRecommendation}
+            <!-- Financial Stability Risk -->
+            <div class="slds-col slds-size_1-of-2 small-box">
+              <div class="section-title">&nbsp;</div>
+              <div class="score-box">
+                <div class="score-type">Financial Stability Risk</div>
+                <div class="score-value">{financialStabilityRisk}</div>
+                <div class="credit-limit">&nbsp;</div>
               </div>
             </div>
           </div>
-          <!-- Financial Stability Risk -->
-          <div class="slds-col slds-size_1-of-2 small-box">
-            <div class="section-title">&nbsp;</div>
-            <div class="score-box">
-              <div class="score-type">Financial Stability Risk</div>
-              <div class="score-value">{financialStabilityRisk}</div>
-              <div class="credit-limit">&nbsp;</div>
+        </div>
+
+        <!-- Second Column -->
+        <div class="slds-col slds-size_1-of-2">
+          <div class="slds-grid slds-wrap slds-grid_vertical-align-start">
+            <!-- Days Beyond Terms -->
+            <div class="slds-col slds-size_1-of-3 small-box">
+              <div class="section-title">Days Beyond Terms</div>
+              <div class="score-box">
+                <div class="score-value">{daysBeyondTerms}</div>
+                <div class="score-type">Company DBT</div>
+                <div class="industry-dbt">Industry DBT: {industryDbt}</div>
+              </div>
+            </div>
+
+            <!-- Derogatory Legal -->
+            <div class="slds-col slds-size_1-of-3 small-box">
+              <div class="section-title">Derogatory Legal</div>
+              <div class="score-box">
+                <div class="score-value">{derogatoryLegal}</div>
+                <div class="score-type">Original Filings</div>
+                <div>&nbsp;</div>
+              </div>
+            </div>
+
+            <!-- Fraud Alerts -->
+            <div class="slds-col slds-size_1-of-3 small-box">
+              <div class="section-title">Fraud Alerts</div>
+              <div class="score-box">
+                <div class="score-value">{fraudAlerts}</div>
+                <div class="score-type">High Risk Alerts</div>
+                <div>&nbsp;</div>
+              </div>
             </div>
           </div>
         </div>
       </div>
-
-      <!-- Second Column -->
-      <div class="slds-col slds-size_1-of-2">
-        <div class="slds-grid slds-wrap slds-grid_vertical-align-start">
-          <!-- Days Beyond Terms -->
-          <div class="slds-col slds-size_1-of-3 small-box">
-            <div class="section-title">Days Beyond Terms</div>
-            <div class="score-box">
-              <div class="score-value">{daysBeyondTerms}</div>
-              <div class="score-type">Company DBT</div>
-              <div class="industry-dbt">Industry DBT: {industryDbt}</div>
-            </div>
-          </div>
-
-          <!-- Derogatory Legal -->
-          <div class="slds-col slds-size_1-of-3 small-box">
-            <div class="section-title">Derogatory Legal</div>
-            <div class="score-box">
-              <div class="score-value">{derogatoryLegal}</div>
-              <div class="score-type">Original Filings</div>
-              <div>&nbsp;</div>
-            </div>
-          </div>
-
-          <!-- Fraud Alerts -->
-          <div class="slds-col slds-size_1-of-3 small-box">
-            <div class="section-title">Fraud Alerts</div>
-            <div class="score-box">
-              <div class="score-value">{fraudAlerts}</div>
-              <div class="score-type">High Risk Alerts</div>
-              <div>&nbsp;</div>
-            </div>
-          </div>
+    </template>
+    <template if:false={hasData}>
+      <div class="slds-illustration slds-illustration_small" aria-hidden="true">
+        <div class="slds-text-longform">
+          <h4 class="slds-text-heading_medium">
+            No Experian Business Information Available
+          </h4>
         </div>
       </div>
-    </div>
+    </template>
   </lightning-card>
 </template>

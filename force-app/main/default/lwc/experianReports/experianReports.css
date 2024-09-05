@@ -1,9 +1,5 @@
 .experian-reports-container {
-  border: 1px solid #dddbda;
-  border-radius: 0.25rem;
-  background-color: #ffffff;
-  box-shadow: 0 2px 2px 0 rgba(0, 0, 0, 0.1);
-  margin: 0.75rem 0;
+  background-color: var(--lwc-colorBackground, rgb(243, 243, 243));
 }
 
 .experian-reports-header {
@@ -11,13 +7,11 @@
   /* Removed border-bottom */
 }
 
-.experian-reports-body {
-  padding: 0.75rem;
+.slds-card__body {
+  margin-top: var(--lwc-varSpacingVerticalMedium, 1rem);
 }
-
 .slds-text-align_center {
-  font-style: italic;
-  color: #706e6b;
+  color: var(--lwc-colorTextWeak, rgb(107, 109, 112));
 }
 
 .slds-button-icon_container {
