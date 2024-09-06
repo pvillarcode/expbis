@@ -92,19 +92,16 @@ export default class DecisionHistory extends LightningElement {
         if (result.success === false) {
           this.showToast("Error", result.message, "error");
         } else {
-          refreshApex(this.wiredDecisionsResult);
-        }
-      })
-      .then(() => {
-        if (this.currentDecision) {
-          const toastVariant = this.getToastVariant(
-            this.currentDecision.decision
-          );
-          this.showToast(
-            "New Decision",
-            `Decision: ${this.currentDecision.decision}`,
-            toastVariant
-          );
+          refreshApex(this.wiredDecisionsResult).then(() => {
+            const toastVariant = this.getToastVariant(
+              this.currentDecision.decision
+            );
+            this.showToast(
+              "New Decision",
+              `Decision: ${this.currentDecision.decision}`,
+              toastVariant
+            );
+          });
         }
       })
       .catch((error) => {

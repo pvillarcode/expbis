@@ -3,6 +3,7 @@ public with sharing class ExperianDecisionController {
   private static final String ENDPOINT_JSON_URL = 'https://sandbox-us-api.experian.com/businessinformation/decisioniq/v1/basicdecisions';
   private static final Integer TIMEOUT = 120000;
   private static final String USER_ID = 'qa_admin';
+  private static final Integer MIN_RELIABILITY_CODE = 95;
 
   @AuraEnabled(cacheable=true)
   public static List<Experian_Decision__c> getAllDecisions(String accountId) {
@@ -26,37 +27,69 @@ public with sharing class ExperianDecisionController {
   public static Map<String, Object> pullNewDecision(String accountId) {
     System.debug('pullNewDecision called with accountId: ' + accountId);
     try {
+      // Check for existing Experian_Business__c record
       Experian_Business__c experianBusiness = getExperianBusinessForAccount(
         accountId
       );
-      System.debug('Experian Business record: ' + experianBusiness);
 
-      if (experianBusiness == null) {
-        System.debug(
-          'No Experian Business record found or created for this account.'
-        );
-        return new Map<String, Object>{
-          'success' => false,
-          'message' => 'No Experian Business record found or created for this account.'
+      String bin;
+      String experianName;
+      Decimal reliabilityCode;
+
+      if (
+        experianBusiness != null && String.isNotBlank(experianBusiness.BIN__c)
+      ) {
+        // Use existing BIN
+        bin = experianBusiness.BIN__c;
+        experianName = experianBusiness.Name;
+        reliabilityCode = 100; // Assume high reliability for existing records
+      } else {
+        // No existing BIN, use getLOS
+        Account acc = BusinessSearch.getAccountDetails(accountId);
+
+        // Prepare search criteria for getLOS
+        Map<String, String> searchCriteria = new Map<String, String>{
+          'businessName' => acc.Name,
+          'address' => acc.BillingStreet,
+          'city' => acc.BillingCity,
+          'state' => acc.BillingState,
+          'zipcode' => acc.BillingPostalCode
         };
+
+        // Call getLOS to get the BIN
+        List<BusinessSearch.BusinessResult> results = BusinessSearch.getLOS(
+          searchCriteria
+        );
+
+        if (results.isEmpty()) {
+          return new Map<String, Object>{
+            'success' => false,
+            'message' => 'No matching business found in Experian database.'
+          };
+        }
+
+        BusinessSearch.BusinessResult businessResult = results[0];
+        bin = businessResult.bin;
+        experianName = businessResult.name;
+        reliabilityCode = businessResult.reliabilityCode;
       }
 
-      if (String.isBlank(experianBusiness.BIN__c)) {
-        System.debug('Experian Business record is being processed.');
-        System.debug(experianBusiness);
+      if (reliabilityCode <= MIN_RELIABILITY_CODE) {
         return new Map<String, Object>{
           'success' => false,
-          'message' => 'Experian Business record is being processed. Please try again in a few moments.'
+          'message' => 'Reliability code (' +
+          reliabilityCode +
+          ') is too low for business ' +
+          experianName +
+          ' with BIN ' +
+          bin +
+          '.'
         };
       }
 
       // Call the API using the separate method
-      System.debug(
-        'Calling getDecisionApiCall with BIN: ' + experianBusiness.BIN__c
-      );
-      Map<String, Object> apiResponse = getDecisionApiCall(
-        experianBusiness.BIN__c
-      );
+      System.debug('Calling getDecisionApiCall with BIN: ' + bin);
+      Map<String, Object> apiResponse = getDecisionApiCall(bin);
       System.debug('API Response: ' + apiResponse);
 
       if (apiResponse.containsKey('error')) {
@@ -78,7 +111,11 @@ public with sharing class ExperianDecisionController {
       return new Map<String, Object>{
         'success' => true,
         'decision' => newDecision,
-        'message' => 'Experian Decision pulled successfully.'
+        'message' => 'Experian Decision pulled successfully for Business ' +
+        experianName +
+        ' with BIN ' +
+        bin +
+        '.'
       };
     } catch (Exception e) {
       System.debug('Exception occurred: ' + e.getMessage());
@@ -187,49 +224,13 @@ public with sharing class ExperianDecisionController {
   private static Experian_Business__c getExperianBusinessForAccount(
     String accountId
   ) {
-    System.debug(
-      'getExperianBusinessForAccount called with accountId: ' + accountId
-    );
-
     List<Experian_Business__c> experianBusinesses = [
-      SELECT Id, BIN__c
+      SELECT Id, Name, BIN__c
       FROM Experian_Business__c
-      WHERE Account__c = :accountId
+      WHERE Account__c = :accountId AND BIN__c != NULL
       LIMIT 1
     ];
-    System.debug('Queried Experian_Business__c records: ' + experianBusinesses);
-
-    if (!experianBusinesses.isEmpty() && experianBusinesses[0].BIN__c != null) {
-      System.debug(
-        'Found existing Experian_Business__c record with BIN__c: ' +
-        experianBusinesses[0].BIN__c
-      );
-      return experianBusinesses[0];
-    }
-
-    // If no existing record, try to create one
-    try {
-      System.debug(
-        'No existing Experian_Business__c record found, attempting to create a new one.'
-      );
-      Experian_Business__c newBusiness = BusinessSearch.createExperianBusinessFromAccount(
-        accountId
-      );
-      System.debug('Created new Experian_Business__c record: ' + newBusiness);
-      if (newBusiness != null) {
-        return newBusiness;
-      }
-    } catch (Exception e) {
-      System.debug(
-        'Error creating Experian Business record: ' + e.getMessage()
-      );
-    }
-
-    // If we couldn't find or create a record, return null
-    System.debug(
-      'No Experian_Business__c record found or created, returning null.'
-    );
-    return null;
+    return experianBusinesses.isEmpty() ? null : experianBusinesses[0];
   }
 
   private static Experian_Decision__c createExperianDecisionRecord(
