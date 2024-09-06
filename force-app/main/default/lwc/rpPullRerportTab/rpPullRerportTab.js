@@ -145,7 +145,14 @@ export default class RpPullReportTab extends NavigationMixin(LightningElement) {
           "Report generated and saved successfully",
           "success"
         );
-        this.navigateToRecord(result.accountId);
+
+        if (result.contentDocumentId) {
+          return this.openPdfInNewTab(result.contentDocumentId).then(() => {
+            // Navigate to the account record after opening the PDF
+            return this.navigateToRecord(result.accountId);
+          });
+        }
+        return this.navigateToRecord(result.accountId);
       })
       .catch((error) => {
         console.log("Error pulling the report:", error);
@@ -159,6 +166,24 @@ export default class RpPullReportTab extends NavigationMixin(LightningElement) {
         this.isLoading = false;
         this.handleClearSearch();
       });
+  }
+
+  openPdfInNewTab(contentDocumentId) {
+    return new Promise((resolve) => {
+      this[NavigationMixin.GenerateUrl]({
+        type: "standard__namedPage",
+        attributes: {
+          pageName: "filePreview"
+        },
+        state: {
+          selectedRecordId: contentDocumentId
+        }
+      }).then((url) => {
+        window.open(url, "_blank");
+        // Resolve the promise immediately after opening the new tab
+        resolve();
+      });
+    });
   }
 
   /*
