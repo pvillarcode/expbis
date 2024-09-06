@@ -35,6 +35,7 @@ public with sharing class ExperianDecisionController {
       String bin;
       String experianName;
       Decimal reliabilityCode;
+      BusinessSearch.BusinessResult businessResult;
 
       if (
         experianBusiness != null && String.isNotBlank(experianBusiness.BIN__c)
@@ -68,7 +69,7 @@ public with sharing class ExperianDecisionController {
           };
         }
 
-        BusinessSearch.BusinessResult businessResult = results[0];
+        businessResult = results[0];
         bin = businessResult.bin;
         experianName = businessResult.name;
         reliabilityCode = businessResult.reliabilityCode;
@@ -85,6 +86,14 @@ public with sharing class ExperianDecisionController {
           bin +
           '.'
         };
+      }
+
+      // Create Experian_Business__c record if it doesn't exist and reliabilityCode is sufficient
+      if (experianBusiness == null && businessResult != null) {
+        experianBusiness = createExperianBusinessRecord(
+          accountId,
+          businessResult
+        );
       }
 
       // Call the API using the separate method
@@ -127,6 +136,35 @@ public with sharing class ExperianDecisionController {
         'Error pulling new decision: ' + e.getMessage()
       );
     }
+  }
+
+  private static Experian_Business__c getExperianBusinessForAccount(
+    String accountId
+  ) {
+    List<Experian_Business__c> experianBusinesses = [
+      SELECT Id, Name, BIN__c
+      FROM Experian_Business__c
+      WHERE Account__c = :accountId AND BIN__c != NULL
+      LIMIT 1
+    ];
+    return experianBusinesses.isEmpty() ? null : experianBusinesses[0];
+  }
+
+  private static Experian_Business__c createExperianBusinessRecord(
+    String accountId,
+    BusinessSearch.BusinessResult businessResult
+  ) {
+    Experian_Business__c newBusiness = new Experian_Business__c(
+      Account__c = accountId,
+      Name = businessResult.name,
+      BIN__c = businessResult.bin,
+      Street_Address__c = businessResult.address,
+      City__c = businessResult.city,
+      State__c = businessResult.state,
+      Zip__c = businessResult.zip
+    );
+    insert newBusiness;
+    return newBusiness;
   }
 
   private static Map<String, Object> getDecisionApiCall(String bin) {
@@ -219,18 +257,6 @@ public with sharing class ExperianDecisionController {
 
     insert newDecision;
     return newDecision;
-  }
-
-  private static Experian_Business__c getExperianBusinessForAccount(
-    String accountId
-  ) {
-    List<Experian_Business__c> experianBusinesses = [
-      SELECT Id, Name, BIN__c
-      FROM Experian_Business__c
-      WHERE Account__c = :accountId AND BIN__c != NULL
-      LIMIT 1
-    ];
-    return experianBusinesses.isEmpty() ? null : experianBusinesses[0];
   }
 
   private static Experian_Decision__c createExperianDecisionRecord(

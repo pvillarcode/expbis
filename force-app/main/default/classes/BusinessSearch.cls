@@ -66,24 +66,28 @@ public with sharing class BusinessSearch {
             businessResult.bin = (String) businessMap.get('bin');
             businessResult.name = (String) businessMap.get('businessName');
             businessResult.phone = (String) businessMap.get('phone');
+            businessResult.reliabilityCode = (Decimal) businessMap.get(
+              'reliabilityCode'
+            );
 
             Map<String, Object> addressMap = (Map<String, Object>) businessMap.get(
               'address'
             );
             if (addressMap != null) {
+              businessResult.street = (String) addressMap.get('street');
+              businessResult.city = (String) addressMap.get('city');
+              businessResult.state = (String) addressMap.get('state');
+              businessResult.zip = (String) addressMap.get('zip');
               businessResult.address =
-                addressMap.get('street') +
+                businessResult.street +
                 ', ' +
-                addressMap.get('city') +
+                businessResult.city +
                 ', ' +
-                addressMap.get('state') +
+                businessResult.state +
                 ' ' +
-                addressMap.get('zip');
+                businessResult.zip;
             }
 
-            businessResult.reliabilityCode = (Decimal) businessMap.get(
-              'reliabilityCode'
-            );
             businessResult.numberOfTradelines = (Integer) businessMap.get(
               'numberOfTradelines'
             );
@@ -262,7 +266,6 @@ public with sharing class BusinessSearch {
       WHERE Id = :accountId
     ];
   }
-
   public class BusinessResult {
     @AuraEnabled
     public String bin;
@@ -272,6 +275,14 @@ public with sharing class BusinessSearch {
     public String phone;
     @AuraEnabled
     public String address;
+    @AuraEnabled
+    public String street;
+    @AuraEnabled
+    public String city;
+    @AuraEnabled
+    public String state;
+    @AuraEnabled
+    public String zip;
     @AuraEnabled
     public Decimal reliabilityCode;
     @AuraEnabled
