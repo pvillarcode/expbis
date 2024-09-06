@@ -1,15 +1,13 @@
 import { LightningElement, track, wire } from "lwc";
 import { NavigationMixin } from "lightning/navigation";
-import getPDFReport from "@salesforce/apex/PullReport.getPDFReport";
-import getJSONReport from "@salesforce/apex/PullReport.getJSONReport";
-import savePDFToSalesforce from "@salesforce/apex/PullReport.savePDFToSalesforce";
-import saveExperianInformation from "@salesforce/apex/PullReport.saveExperianInformation";
 import getAccountDetails from "@salesforce/apex/BusinessSearch.getAccountDetails";
 import getScoringModels from "@salesforce/apex/PullReport.getScoringModels";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
+import pullAndProcessReport from "@salesforce/apex/PullReport.pullAndProcessReport";
 import { CurrentPageReference } from "lightning/navigation";
 
 export default class RpPullReportTab extends NavigationMixin(LightningElement) {
+  accountId;
   @track currentPage = "rp-business-search";
   @track businessId;
   @track reportType;
@@ -54,9 +52,20 @@ export default class RpPullReportTab extends NavigationMixin(LightningElement) {
       });
   }
 
+  connectedCallback() {
+    this.loadAccountData();
+  }
+
   loadAccountData() {
+    let accountId = this.accountId;
+    if (accountId === undefined || accountId === null || accountId === "") {
+      console.log("accountId is null or undefined");
+      return;
+    }
+
+    console.log("loadAccountData(accountId: " + accountId + ")");
     this.handleClearSearch();
-    getAccountDetails({ accountId: this.accountId })
+    getAccountDetails({ accountId: accountId })
       .then((result) => {
         this.accountData = result;
         this.populateBusinessSearch();
@@ -123,11 +132,36 @@ export default class RpPullReportTab extends NavigationMixin(LightningElement) {
   }
 
   handlePullReport() {
+    this.isLoading = true;
     console.log("Pulling report for businessId:", this.selectedBusiness);
-    const jsonBusiness = { jsonData: JSON.stringify(this.selectedBusiness) };
-    this.handleGetReport(jsonBusiness);
+    pullAndProcessReport({
+      jsonData: JSON.stringify(this.selectedBusiness),
+      accountId: this.accountId
+    })
+      .then((result) => {
+        console.log("Report generated and saved successfully:", result);
+        this.showToast(
+          "Success",
+          "Report generated and saved successfully",
+          "success"
+        );
+        this.navigateToRecord(result.accountId);
+      })
+      .catch((error) => {
+        console.log("Error pulling the report:", error);
+        this.showToast(
+          "Error",
+          "Failed to generate or save report: " + error.body.message,
+          "error"
+        );
+      })
+      .finally(() => {
+        this.isLoading = false;
+        this.handleClearSearch();
+      });
   }
 
+  /*
   async handleGetReport(jsonBusiness) {
     try {
       this.isLoading = true;
@@ -192,8 +226,18 @@ export default class RpPullReportTab extends NavigationMixin(LightningElement) {
       console.error("Error handling PDF:", error);
       this.isLoading = false;
     }
-  }
+  }*/
 
+  navigateToRecord(accountId) {
+    this[NavigationMixin.Navigate]({
+      type: "standard__recordPage",
+      attributes: {
+        recordId: accountId,
+        objectApiName: "Account",
+        actionName: "view"
+      }
+    });
+  }
   showToast(title, message, variant) {
     const event = new ShowToastEvent({
       title: title,

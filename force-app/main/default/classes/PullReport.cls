@@ -5,6 +5,71 @@ public with sharing class PullReport {
   private static final Integer TIMEOUT = 120000;
 
   @AuraEnabled
+  public static Map<String, Object> pullAndProcessReport(
+    String jsonData,
+    Id accountId
+  ) {
+    System.debug('Starting pullAndProcessReport method');
+    System.debug('Input jsonData: ' + jsonData);
+    System.debug('Input accountId: ' + accountId);
+
+    try {
+      Experian_Configuration__c setting = ExperianApiService.getBIQConfig();
+      System.debug('Retrieved Experian configuration: ' + setting);
+
+      Map<String, Object> businessData = (Map<String, Object>) JSON.deserializeUntyped(
+        jsonData
+      );
+      System.debug('Deserialized businessData: ' + businessData);
+
+      String bin = (String) businessData.get('BIN');
+      System.debug('Extracted bin: ' + bin);
+      String jsonReport = '';
+      if (accountId == null) {
+        jsonReport = getJSONReport(bin, setting);
+        accountId = findOrCreateAccount(jsonReport);
+        System.debug('Created or found accountId: ' + accountId);
+      } else {
+        jsonReport = getJSONReport(bin, setting);
+      }
+
+      System.debug('Retrieved JSON report: ' + jsonReport);
+
+      String pdfReport = getPDFReport(bin, setting);
+      System.debug('Retrieved PDF report');
+
+      // Save Experian information
+      Experian_Business__c experianBusiness = saveExperianInformation(
+        jsonReport,
+        accountId
+      );
+      System.debug(
+        'Saved Experian information, experianBusinessId: ' + experianBusiness.Id
+      );
+
+      // Save PDF to Salesforce
+      String contentDocumentId = savePDFToSalesforce(
+        pdfReport,
+        'PremierProfile_' + System.now().getTime(),
+        accountId
+      );
+      System.debug(
+        'Saved PDF to Salesforce, contentDocumentId: ' + contentDocumentId
+      );
+
+      return new Map<String, Object>{
+        'accountId' => accountId,
+        'contentDocumentId' => contentDocumentId
+      };
+    } catch (Exception e) {
+      System.debug('Error processing report: ' + e.getMessage());
+      throw new AuraHandledException(
+        'Error processing report: ' + e.getMessage()
+      );
+    }
+  }
+
+  @AuraEnabled
   public static List<Experian_Scoring_Model__c> getScoringModels() {
     Experian_Configuration__c setting = ExperianApiService.getBIQConfig();
 
@@ -17,172 +82,210 @@ public with sharing class PullReport {
     return scoringModels;
   }
 
-  @AuraEnabled
-  public static String getJSONReport(String jsonData) {
-    Map<String, Object> businessMap = (Map<String, Object>) JSON.deserializeUntyped(
-      jsonData
-    );
-
-    Experian_Configuration__c setting = ExperianApiService.getBIQConfig();
-
-    PullReportReqWrapper reqWrapper = new PullReportReqWrapper();
-
-    reqWrapper.subcode = DEFAULT_SUBCODE;
-    reqWrapper.bin = (String) businessMap.get('BIN');
-
+  private static String getJSONReport(
+    String bin,
+    Experian_Configuration__c setting
+  ) {
     HttpRequest req = new HttpRequest();
-    req.setMethod('POST');
-    req.setTimeout(TIMEOUT);
+    System.debug('Initializing HttpRequest');
+
     req.setEndpoint(ENDPOINT_JSON_URL);
-    req.setHeader('Accept', 'application/json');
-    req.setHeader('Content-type', 'application/json');
+    System.debug('Set endpoint: ' + ENDPOINT_JSON_URL);
+
+    req.setMethod('POST');
+    System.debug('Set method to POST');
+
+    req.setHeader('Content-Type', 'application/json');
+    System.debug('Set Content-Type header to application/json');
+
     req.setHeader(
       'Authorization',
       'Bearer ' + setting.Experian_Access_Token__c
     );
-    req.setBody(JSON.serialize(reqWrapper, true));
+    System.debug('Set Authorization header with token');
+
+    Map<String, Object> requestBody = new Map<String, Object>{
+      'bin' => bin,
+      'subcode' => DEFAULT_SUBCODE
+    };
+    req.setBody(JSON.serialize(requestBody));
+    System.debug('Set request body: ' + JSON.serialize(requestBody));
 
     Http http = new Http();
-    HttpResponse res = http.send(req);
+    System.debug('Initialized Http object');
 
-    if (res.getStatusCode() == 200) {
-      System.debug('Success Json response');
-      return res.getBody();
-    } else {
-      System.debug('Error Json response');
-      System.debug(req.getBody());
-      return 'Error';
+    HttpResponse res = http.send(req);
+    System.debug('Sent HTTP request');
+
+    if (res.getStatusCode() != 200) {
+      System.debug('Failed to get JSON report. Status: ' + res.getStatus());
+      throw new AuraHandledException(
+        'Failed to get JSON report. Status: ' + res.getStatus()
+      );
     }
+
+    System.debug('Successfully received response');
+    return res.getBody();
   }
 
   @AuraEnabled
-  public static String getPDFReport(String jsonData) {
-    System.debug('getPDF Report');
-    System.debug(jsonData);
-    Map<String, Object> businessMap = (Map<String, Object>) JSON.deserializeUntyped(
-      jsonData
-    );
+  public static String getPDFReport(
+    String bin,
+    Experian_Configuration__c setting
+  ) {
+    if (String.isBlank(bin)) {
+      System.debug('BIN is blank, returning null');
+      return null;
+    }
 
-    Experian_Configuration__c setting = ExperianApiService.getBIQConfig();
-
-    PullReportReqWrapper reqWrapper = new PullReportReqWrapper();
-
-    reqWrapper.subcode = DEFAULT_SUBCODE;
-    reqWrapper.bin = (String) businessMap.get('BIN');
+    System.debug('BIN is not blank, proceeding with HTTP request');
 
     HttpRequest req = new HttpRequest();
+    System.debug('Initialized HttpRequest');
+
     req.setMethod('POST');
+    System.debug('Set method to POST');
+
     req.setTimeout(TIMEOUT);
+    System.debug('Set timeout to ' + TIMEOUT);
+
     req.setEndpoint(ENDPOINT_PDF_URL);
+    System.debug('Set endpoint: ' + ENDPOINT_PDF_URL);
+
     req.setHeader('Accept', 'application/pdf');
+    System.debug('Set Accept header to application/pdf');
+
     req.setHeader('Content-type', 'application/json');
+    System.debug('Set Content-type header to application/json');
+
     req.setHeader(
       'Authorization',
       'Bearer ' + setting.Experian_Access_Token__c
     );
-    req.setBody(JSON.serialize(reqWrapper, true));
+    System.debug('Set Authorization header with token');
+
+    Map<String, Object> requestBody = new Map<String, Object>{
+      'bin' => bin,
+      'subcode' => DEFAULT_SUBCODE
+    };
+    req.setBody(JSON.serialize(requestBody));
+    System.debug('Set request body: ' + JSON.serialize(requestBody));
 
     Http http = new Http();
-    HttpResponse res = http.send(req);
+    System.debug('Initialized Http object');
 
-    if (res.getStatusCode() == 200) {
-      System.debug('Success PDF report');
-      return res.getBody();
-    } else {
-      System.debug('Error PDF report');
-      System.debug('StatusCode: ' + res.getStatusCode());
-      System.debug(req.getBody());
-      return 'Error';
+    HttpResponse res = http.send(req);
+    System.debug('Sent HTTP request');
+
+    if (res.getStatusCode() != 200) {
+      System.debug('Failed to get PDF report. Status: ' + res.getStatus());
+      throw new AuraHandledException(
+        'Failed to get PDF report. Status: ' + res.getStatus()
+      );
     }
+
+    return res.getBody();
   }
 
   @AuraEnabled
-  public static Id savePDFToSalesforce(
-    String base64Data,
+  public static String savePDFToSalesforce(
+    String jsonResponse,
     String fileName,
     Id accountId
   ) {
     System.debug('Entering savePDFToSalesforce method');
-    System.debug('base64Data: ' + base64Data);
+
     System.debug('fileName: ' + fileName);
     System.debug('accountId: ' + accountId);
+    Map<String, Object> responseMap = (Map<String, Object>) JSON.deserializeUntyped(
+      jsonResponse
+    );
 
     if (
-      String.isBlank(base64Data) ||
+      String.isBlank(jsonResponse) ||
       String.isBlank(fileName) ||
       accountId == null
     ) {
       System.debug('Invalid input detected');
       throw new AuraHandledException(
-        'Invalid input: base64Data, fileName, and accountId are required.'
+        'Invalid input: jsonResponse, fileName, and accountId are required.'
       );
     }
 
-    // Create new Experian_Report__c record
+    if (responseMap.containsKey('results')) {
+      String base64Data = (String) responseMap.get('results');
+
+      if (fileName == null) {
+        fileName =
+          'PremierProfileReport_' + Datetime.now().format('yyyyMMdd_HHmmss');
+      }
+
+      Experian_Report__c experianReport = createExperianReport(
+        accountId,
+        fileName
+      );
+      String contentDocumentId = createContentVersion(
+        base64Data,
+        fileName,
+        experianReport.Id
+      );
+
+      return contentDocumentId;
+    } else {
+      throw new AuraHandledException('No results found in the API response');
+    }
+  }
+
+  private static Experian_Report__c createExperianReport(
+    Id accountId,
+    String fileName
+  ) {
     Experian_Report__c experianReport = new Experian_Report__c(
       Account__c = accountId,
       Name = fileName
     );
-
-    System.debug('Experian_Report__c record created: ' + experianReport);
-
-    if (!Schema.sObjectType.Experian_Report__c.isCreateable()) {
-      System.debug(
-        'Insufficient permissions to create Experian_Report__c record'
-      );
-      throw new AuraHandledException(
-        'Insufficient permissions to create Experian_Report__c record.'
-      );
-    }
     insert experianReport;
-    System.debug('Experian_Report__c record inserted: ' + experianReport.Id);
+    return experianReport;
+  }
 
-    if (!Schema.sObjectType.ContentVersion.isCreateable()) {
-      System.debug('Insufficient permissions to create PDF file');
-      throw new AuraHandledException(
-        'Insufficient permissions to create PDF file.'
-      );
-    }
+  private static String createContentVersion(
+    String base64Data,
+    String fileName,
+    Id linkedRecordId
+  ) {
     ContentVersion cv = new ContentVersion();
     cv.VersionData = EncodingUtil.base64Decode(base64Data);
     cv.Title = fileName;
     cv.PathOnClient = fileName + '.pdf';
     insert cv;
-    System.debug('ContentVersion record inserted: ' + cv.Id);
 
-    if (!Schema.sObjectType.ContentDocumentLink.isCreateable()) {
-      System.debug('Insufficient permissions to create ContentDocumentLink');
-      throw new AuraHandledException(
-        'Insufficient permissions to create ContentDocumentLink.'
-      );
-    }
     cv = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
     System.debug('ContentDocumentId retrieved: ' + cv.ContentDocumentId);
 
     ContentDocumentLink cdl = new ContentDocumentLink();
     cdl.ContentDocumentId = cv.ContentDocumentId;
-    cdl.LinkedEntityId = experianReport.Id; // Link to the new Experian_Report__c record
+    cdl.LinkedEntityId = linkedRecordId; // Link to the new Experian_Report__c record
     cdl.ShareType = 'V';
     insert cdl;
-    System.debug('ContentDocumentLink record inserted: ' + cdl.Id);
 
-    System.debug('Exiting savePDFToSalesforce method');
-    return experianReport.Id; // Return the Id of the new Experian_Report__c record
+    return cv.ContentDocumentId;
   }
-  @AuraEnabled
-  public static Id saveExperianInformation(String jsonData) {
+
+  private static Experian_Business__c saveExperianInformation(
+    String jsonReport,
+    Id accountId
+  ) {
     try {
       Map<String, Object> parsedData = (Map<String, Object>) JSON.deserializeUntyped(
-        jsonData
+        jsonReport
       );
       Map<String, Object> results = (Map<String, Object>) parsedData.get(
         'results'
       );
 
-      Id accountId = findOrcreateAccount(results);
-      Id businessId = getOrUpdateBusiness(results, accountId);
+      Experian_Business__c business = getOrUpdateBusiness(results, accountId);
 
-      return accountId;
+      return business;
     } catch (Exception e) {
       throw new AuraHandledException(
         'Error saving Experian Business Information: ' + e.getMessage()
@@ -190,7 +293,13 @@ public with sharing class PullReport {
     }
   }
 
-  public static Id findOrCreateAccount(Map<String, Object> results) {
+  public static Id findOrCreateAccount(String jsonReport) {
+    Map<String, Object> parsedData = (Map<String, Object>) JSON.deserializeUntyped(
+      jsonReport
+    );
+    Map<String, Object> results = (Map<String, Object>) parsedData.get(
+      'results'
+    );
     System.debug('Entering findOrCreateAccount method');
     AccountInfo accountInfo = extractAccountInfo(results);
 
@@ -322,7 +431,7 @@ public with sharing class PullReport {
     }
   }
 
-  private static Id getOrUpdateBusiness(
+  private static Experian_Business__c getOrUpdateBusiness(
     Map<String, Object> results,
     Id accountId
   ) {
@@ -345,7 +454,7 @@ public with sharing class PullReport {
         );
       }
       upsert business;
-      return business.Id;
+      return business;
     } catch (Exception e) {
       System.debug('Error message: ' + e.getMessage());
       System.debug('Stack trace: ' + e.getStackTraceString());

@@ -36,6 +36,7 @@ global with sharing class FlowPullReportService {
     try {
       // Search for the business
       Map<String, String> searchCriteria = new Map<String, String>{
+        'accountId' => request.accountId,
         'businessName' => request.businessName,
         'address' => request.address,
         'city' => request.city,
@@ -51,59 +52,40 @@ global with sharing class FlowPullReportService {
         // Assume the first result is the correct one
         BusinessSearch.BusinessResult businessInfo = searchResults[0];
 
-        // Get JSON report
-        String jsonResponse = PullReport.getJSONReport(
-          JSON.serialize(new Map<String, Object>{ 'BIN' => businessInfo.bin })
+        // Prepare the JSON data for pullAndProcessReport
+        Map<String, Object> businessData = new Map<String, Object>{
+          'BIN' => businessInfo.bin
+        };
+
+        // Call pullAndProcessReport
+        Map<String, Object> result = PullReport.pullAndProcessReport(
+          JSON.serialize(businessData),
+          request.accountId
         );
 
-        // Generate PDF report
-        String pdfResponse = PullReport.getPDFReport(
-          JSON.serialize(new Map<String, Object>{ 'BIN' => businessInfo.bin })
-        );
-
-        // Now that all callouts are complete, perform DML operations
-
-        // Create or update Experian Business record
-        Id experianBusinessId = PullReport.saveExperianInformation(
-          jsonResponse
-        );
-
-        // Extract Base64 encoded PDF from JSON response
-        Map<String, Object> pdfResponseMap = (Map<String, Object>) JSON.deserializeUntyped(
-          pdfResponse
-        );
-        String base64EncodedPdf = (String) pdfResponseMap.get('results');
-
-        // Create Experian_Report__c record
-        Experian_Report__c experianReport = new Experian_Report__c(
-          Account__c = request.accountId,
-          Name = request.businessName + ' Report - Flows '
-        );
-        insert experianReport;
-
-        // Save PDF to Salesforce and link to Experian_Report__c record
-        ContentVersion cv = new ContentVersion();
-        cv.VersionData = EncodingUtil.base64Decode(base64EncodedPdf);
-        cv.Title = experianReport.Name;
-        cv.PathOnClient = experianReport.Name + '.pdf';
-        insert cv;
-
-        // Link ContentVersion to Experian_Report__c record
-        ContentDocumentLink cdl = new ContentDocumentLink();
-        cdl.ContentDocumentId = [
-          SELECT ContentDocumentId
-          FROM ContentVersion
-          WHERE Id = :cv.Id
-        ]
-        .ContentDocumentId;
-        cdl.LinkedEntityId = experianReport.Id;
-        cdl.ShareType = 'V';
-        insert cdl;
+        // Check if the report was successfully processed
+        if (
+          result.containsKey('accountId') &&
+          result.containsKey('contentDocumentId')
+        ) {
+          // Log success
+          ExperianLogger.log(
+            'Business report processed successfully for Account ID: ' +
+              result.get('accountId') +
+              ', ContentDocument ID: ' +
+              result.get('contentDocumentId'),
+            ExperianLogger.LogLevel.INFO
+          );
+        } else {
+          throw new BusinessReportException(
+            'Failed to process business report'
+          );
+        }
       } else {
         throw new BusinessReportException('No matching business found');
       }
     } catch (Exception e) {
-      // Log the error or send a notification
+      // Log the error
       ExperianLogger.log(
         'Error in processBusinessReportFuture method: ' + e.getMessage(),
         ExperianLogger.LogLevel.ERROR
