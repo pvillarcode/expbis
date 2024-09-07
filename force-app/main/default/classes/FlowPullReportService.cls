@@ -34,55 +34,65 @@ global with sharing class FlowPullReportService {
     );
 
     try {
-      // Search for the business
-      Map<String, String> searchCriteria = new Map<String, String>{
-        'accountId' => request.accountId,
-        'businessName' => request.businessName,
-        'address' => request.address,
-        'city' => request.city,
-        'state' => request.state,
-        'zipcode' => request.zip
-      };
+      // Check for existing Experian_Business__c record with non-null BIN
+      List<Experian_Business__c> existingBusinesses = [
+        SELECT Id, BIN__c
+        FROM Experian_Business__c
+        WHERE Account__c = :request.accountId AND BIN__c != NULL
+        LIMIT 1
+      ];
 
-      List<BusinessSearch.BusinessResult> searchResults = BusinessSearch.getLOS(
-        searchCriteria
-      );
-
-      if (!searchResults.isEmpty()) {
-        // Assume the first result is the correct one
-        BusinessSearch.BusinessResult businessInfo = searchResults[0];
-
-        // Prepare the JSON data for pullAndProcessReport
-        Map<String, Object> businessData = new Map<String, Object>{
-          'BIN' => businessInfo.bin
+      String bin;
+      if (!existingBusinesses.isEmpty()) {
+        // Use existing BIN
+        bin = existingBusinesses[0].BIN__c;
+      } else {
+        // Search for the business using getLOS
+        Map<String, String> searchCriteria = new Map<String, String>{
+          'accountId' => request.accountId,
+          'businessName' => request.businessName,
+          'address' => request.address,
+          'city' => request.city,
+          'state' => request.state,
+          'zipcode' => request.zip
         };
 
-        // Call pullAndProcessReport
-        Map<String, Object> result = PullReport.pullAndProcessReport(
-          JSON.serialize(businessData),
-          request.accountId
+        List<BusinessSearch.BusinessResult> searchResults = BusinessSearch.getLOS(
+          searchCriteria
         );
 
-        // Check if the report was successfully processed
-        if (
-          result.containsKey('accountId') &&
-          result.containsKey('contentDocumentId')
-        ) {
-          // Log success
-          ExperianLogger.log(
-            'Business report processed successfully for Account ID: ' +
-              result.get('accountId') +
-              ', ContentDocument ID: ' +
-              result.get('contentDocumentId'),
-            ExperianLogger.LogLevel.INFO
-          );
-        } else {
-          throw new BusinessReportException(
-            'Failed to process business report'
-          );
+        if (searchResults.isEmpty()) {
+          throw new BusinessReportException('No matching business found');
         }
+
+        // Assume the first result is the correct one
+        BusinessSearch.BusinessResult businessInfo = searchResults[0];
+        bin = businessInfo.bin;
+      }
+
+      // Prepare the JSON data for pullAndProcessRepor
+
+      // Call pullAndProcessReport
+      Map<String, Object> result = PullReport.completeReportProcess(
+        request.accountId,
+        bin
+      );
+
+      // Check if the report was successfully processed
+      if (
+        result.containsKey('accountId') &&
+        result.containsKey('contentDocumentId')
+      ) {
+        // Log success
+        ExperianLogger.log(
+          'Business report processed successfully for Account ID: ' +
+            result.get('accountId') +
+            ', ContentDocument ID: ' +
+            result.get('contentDocumentId'),
+          ExperianLogger.LogLevel.INFO
+        );
       } else {
-        throw new BusinessReportException('No matching business found');
+        throw new BusinessReportException('Failed to process business report');
       }
     } catch (Exception e) {
       // Log the error
