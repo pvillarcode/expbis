@@ -3,7 +3,9 @@ import { NavigationMixin } from "lightning/navigation";
 import getAccountDetails from "@salesforce/apex/BusinessSearch.getAccountDetails";
 import getScoringModels from "@salesforce/apex/PullReport.getScoringModels";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
-import pullAndProcessReport from "@salesforce/apex/PullReport.pullAndProcessReport";
+import initiateReportProcess from "@salesforce/apex/PullReport.initiateReportProcess";
+import completeReportProcess from "@salesforce/apex/PullReport.completeReportProcess";
+
 import { CurrentPageReference } from "lightning/navigation";
 
 export default class RpPullReportTab extends NavigationMixin(LightningElement) {
@@ -115,6 +117,7 @@ export default class RpPullReportTab extends NavigationMixin(LightningElement) {
 
   handleBusinessSelect(event) {
     this.selectedBusiness = event.detail;
+    console.log("selected business city: " + this.selectedBusiness.city);
     console.log("selectedBusiness in reportab js:", this.selectedBusiness);
     this.currentPage = "rp-report-selection";
   }
@@ -131,41 +134,48 @@ export default class RpPullReportTab extends NavigationMixin(LightningElement) {
     this.currentPage = "rp-report-display";
   }
 
-  handlePullReport() {
+  async handlePullReport() {
     this.isLoading = true;
     console.log("Pulling report for businessId:", this.selectedBusiness);
-    pullAndProcessReport({
-      jsonData: JSON.stringify(this.selectedBusiness),
-      accountId: this.accountId
-    })
-      .then((result) => {
-        console.log("Report generated and saved successfully:", result);
-        this.showToast(
-          "Success",
-          "Report generated and saved successfully",
-          "success"
-        );
 
-        if (result.contentDocumentId) {
-          return this.openPdfInNewTab(result.contentDocumentId).then(() => {
-            // Navigate to the account record after opening the PDF
-            return this.navigateToRecord(result.accountId);
-          });
-        }
-        return this.navigateToRecord(result.accountId);
-      })
-      .catch((error) => {
-        console.log("Error pulling the report:", error);
-        this.showToast(
-          "Error",
-          "Failed to generate or save report: " + error.body.message,
-          "error"
-        );
-      })
-      .finally(() => {
-        this.isLoading = false;
-        this.handleClearSearch();
+    this.isLoading = true;
+    try {
+      // Step 1: Initiate the report process
+      const initialResult = await initiateReportProcess({
+        jsonData: JSON.stringify(this.selectedBusiness),
+        accountId: this.accountId
       });
+
+      // Step 2: Complete the report process
+      const finalResult = await completeReportProcess({
+        accountId: initialResult.accountId,
+        bin: initialResult.bin
+      });
+
+      // Handle the final result
+      this.handleReportSuccess(finalResult);
+    } catch (error) {
+      this.handleError(error);
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  handleReportSuccess(result) {
+    this.showToast("Success", "Report generated successfully", "success");
+    // You might want to do something with the result here,
+    // such as navigating to the new record or displaying some data
+    console.log("Report process completed. Account Id:", result.accountId);
+    console.log("Content Document Id:", result.contentDocumentId);
+    this.handleClearSearch();
+
+    if (result.contentDocumentId) {
+      return this.openPdfInNewTab(result.contentDocumentId).then(() => {
+        // Navigate to the account record after opening the PDF
+        return this.navigateToRecord(result.accountId);
+      });
+    }
+    return this.navigateToRecord(result.accountId);
   }
 
   openPdfInNewTab(contentDocumentId) {

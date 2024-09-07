@@ -5,56 +5,81 @@ public with sharing class PullReport {
   private static final Integer TIMEOUT = 120000;
 
   @AuraEnabled
-  public static Map<String, Object> pullAndProcessReport(
+  public static Map<String, Object> initiateReportProcess(
     String jsonData,
     Id accountId
   ) {
-    System.debug('Starting pullAndProcessReport method');
-    System.debug('Input jsonData: ' + jsonData);
-    System.debug('Input accountId: ' + accountId);
+    System.debug(
+      'Starting initiateReportProcess with jsonData: ' +
+        jsonData +
+        ' and accountId: ' +
+        accountId
+    );
+    try {
+      // Parse the JSON data
+      Map<String, Object> businessData = (Map<String, Object>) JSON.deserializeUntyped(
+        jsonData
+      );
+      System.debug('Parsed businessData: ' + businessData);
+      String bin = (String) businessData.get('BIN');
+      System.debug('Extracted BIN: ' + bin);
 
+      // Find or create the account
+      if (accountId == null) {
+        System.debug('accountId is null, calling findOrCreateAccount');
+        accountId = findOrCreateAccount(businessData);
+        System.debug('Created or found accountId: ' + accountId);
+      }
+
+      // Return the accountId and other necessary information
+      Map<String, Object> result = new Map<String, Object>{
+        'accountId' => accountId,
+        'bin' => bin
+      };
+      System.debug('Returning result: ' + result);
+      return result;
+    } catch (Exception e) {
+      System.debug('Exception caught: ' + e.getMessage());
+      throw new AuraHandledException(
+        'Error initiating report process: ' + e.getMessage()
+      );
+    }
+  }
+
+  @AuraEnabled
+  public static Map<String, Object> completeReportProcess(
+    Id accountId,
+    String bin
+  ) {
+    System.debug(
+      'Starting completeReportProcess with accountId: ' +
+        accountId +
+        ' and bin: ' +
+        bin
+    );
     try {
       Experian_Configuration__c setting = ExperianApiService.getBIQConfig();
       System.debug('Retrieved Experian configuration: ' + setting);
 
-      Map<String, Object> businessData = (Map<String, Object>) JSON.deserializeUntyped(
-        jsonData
-      );
-      System.debug('Deserialized businessData: ' + businessData);
-
-      String bin = (String) businessData.get('BIN');
-      System.debug('Extracted bin: ' + bin);
-      String jsonReport = '';
-      if (accountId == null) {
-        jsonReport = getJSONReport(bin, setting);
-        accountId = findOrCreateAccount(jsonReport);
-        System.debug('Created or found accountId: ' + accountId);
-      } else {
-        jsonReport = getJSONReport(bin, setting);
-      }
-
+      // Make the callouts
+      String jsonReport = getJSONReport(bin, setting);
       System.debug('Retrieved JSON report: ' + jsonReport);
-
       String pdfReport = getPDFReport(bin, setting);
       System.debug('Retrieved PDF report');
 
-      // Save Experian information
+      // Process and save the data
       Experian_Business__c experianBusiness = saveExperianInformation(
         jsonReport,
         accountId
       );
-      System.debug(
-        'Saved Experian information, experianBusinessId: ' + experianBusiness.Id
-      );
-
-      // Save PDF to Salesforce
+      System.debug('Saved Experian information: ' + experianBusiness);
       String contentDocumentId = savePDFToSalesforce(
         pdfReport,
         'PremierProfile_' + System.now().getTime(),
         accountId
       );
       System.debug(
-        'Saved PDF to Salesforce, contentDocumentId: ' + contentDocumentId
+        'Saved PDF to Salesforce with contentDocumentId: ' + contentDocumentId
       );
 
       return new Map<String, Object>{
@@ -62,9 +87,9 @@ public with sharing class PullReport {
         'contentDocumentId' => contentDocumentId
       };
     } catch (Exception e) {
-      System.debug('Error processing report: ' + e.getMessage());
+      System.debug('Exception caught: ' + e.getMessage());
       throw new AuraHandledException(
-        'Error processing report: ' + e.getMessage()
+        'Error completing report process: ' + e.getMessage()
       );
     }
   }
@@ -293,15 +318,8 @@ public with sharing class PullReport {
     }
   }
 
-  public static Id findOrCreateAccount(String jsonReport) {
-    Map<String, Object> parsedData = (Map<String, Object>) JSON.deserializeUntyped(
-      jsonReport
-    );
-    Map<String, Object> results = (Map<String, Object>) parsedData.get(
-      'results'
-    );
-    System.debug('Entering findOrCreateAccount method');
-    AccountInfo accountInfo = extractAccountInfo(results);
+  public static Id findOrCreateAccount(Map<String, Object> businessData) {
+    AccountInfo accountInfo = extractAccountInfo(businessData);
 
     Id accountId = findExactMatch(accountInfo);
     if (accountId != null) {
@@ -338,22 +356,17 @@ public with sharing class PullReport {
     return null;
   }
 
-  private static AccountInfo extractAccountInfo(Map<String, Object> results) {
-    Map<String, Object> businessHeader = (Map<String, Object>) results.get(
-      'businessHeader'
-    );
-    Map<String, Object> address = (Map<String, Object>) businessHeader.get(
-      'address'
-    );
-
+  private static AccountInfo extractAccountInfo(
+    Map<String, Object> businessData
+  ) {
     AccountInfo info = new AccountInfo();
-    info.name = (String) businessHeader.get('businessName');
-    info.street = (String) address.get('street');
-    info.city = (String) address.get('city');
-    info.state = (String) address.get('state');
-    info.zip = (String) address.get('zip');
-    info.phone = (String) businessHeader.get('phone');
-    info.website = (String) businessHeader.get('websiteUrl');
+    info.name = (String) businessData.get('name');
+    info.street = (String) businessData.get('address');
+    info.city = (String) businessData.get('city');
+    info.state = (String) businessData.get('state');
+    info.zip = (String) businessData.get('zip');
+    info.phone = (String) businessData.get('phone');
+    info.website = (String) businessData.get('websiteUrl');
 
     System.debug('Extracted AccountInfo: ' + info);
     return info;
