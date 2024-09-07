@@ -1,0 +1,249 @@
+<template>
+  <lightning-card title="AMS Alerts" icon-name="standard:announcement">
+    <div class="slds-p-around_medium">
+      <div class="slds-grid slds-gutters slds-m-bottom_medium">
+        <div class="slds-col slds-size_1-of-4">
+          <lightning-combobox
+            name="viewSelector"
+            label="View"
+            value={selectedView}
+            placeholder="View All AMS"
+            options={viewOptions}
+            onchange={handleViewChange}
+          ></lightning-combobox>
+        </div>
+        <div class="slds-col slds-size_3-of-4 slds-text-align_right">
+          <lightning-button-group>
+            <lightning-button
+              label="Filter Alerts"
+              onclick={openFilterModal}
+              icon-name="utility:filter"
+            ></lightning-button>
+            <lightning-button
+              label="Trigger Code Legend"
+              onclick={openCodeLegendModal}
+            ></lightning-button>
+            <lightning-button
+              label="Print"
+              onclick={printAlerts}
+            ></lightning-button>
+            <lightning-button
+              label="Export"
+              onclick={exportAlerts}
+            ></lightning-button>
+          </lightning-button-group>
+        </div>
+      </div>
+
+      <div class="slds-grid slds-gutters slds-m-bottom_medium">
+        <div class="slds-col slds-size_1-of-2">
+          <lightning-button-group>
+            <lightning-button
+              label="Reset List"
+              onclick={resetList}
+            ></lightning-button>
+            <lightning-button
+              label="Mark as Read"
+              onclick={markSelectedAsRead}
+            ></lightning-button>
+            <lightning-button
+              label="Delete"
+              onclick={deleteSelected}
+            ></lightning-button>
+          </lightning-button-group>
+        </div>
+        <div class="slds-col slds-size_1-of-2">
+          <lightning-input
+            type="search"
+            label="Search"
+            placeholder="Search Business Name, Account Number or BIN"
+            onchange={handleSearch}
+          ></lightning-input>
+        </div>
+      </div>
+
+      <table class="slds-table slds-table_bordered slds-table_cell-buffer">
+        <thead>
+          <tr class="slds-line-height_reset">
+            <th class="slds-cell-shrink" scope="col">
+              <div class="slds-th__action">
+                <lightning-input
+                  type="checkbox"
+                  name="selectAll"
+                  onchange={handleSelectAll}
+                ></lightning-input>
+              </div>
+            </th>
+            <th class="" scope="col">
+              <div class="slds-truncate" title="Business Name">
+                Business Name
+              </div>
+            </th>
+            <th class="" scope="col">
+              <div class="slds-truncate" title="Alert Count">Alert Count</div>
+            </th>
+            <th class="" scope="col">
+              <div class="slds-truncate" title="Alert Type">Alert Type</div>
+            </th>
+            <th class="" scope="col">
+              <div class="slds-truncate" title="Priority">Priority</div>
+            </th>
+            <th class="" scope="col">
+              <div class="slds-truncate" title="Status">Status</div>
+            </th>
+            <th class="" scope="col">
+              <div class="slds-truncate" title="Actions">Actions</div>
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <template for:each={filteredAlerts} for:item="alert">
+            <tr
+              key={alert.Id}
+              class="slds-hint-parent"
+              onclick={handleRowClick}
+              data-id={alert.Id}
+            >
+              <td>
+                <lightning-input
+                  type="checkbox"
+                  name={alert.Id}
+                  checked={alert.selected}
+                  onchange={handleSelectAlert}
+                ></lightning-input>
+              </td>
+              <td>{alert.Name}</td>
+              <td>{alert.Alert_ID__c}</td>
+              <td>{alert.Definition__c}</td>
+              <td>{alert.Priority__c}</td>
+              <td>
+                <span class={alert.statusClass}>{alert.Status__c}</span>
+              </td>
+              <td>
+                <lightning-button-menu alternative-text="Actions">
+                  <lightning-menu-item
+                    value="view"
+                    label="View Details"
+                    onclick={openDetailModal}
+                  ></lightning-menu-item>
+                  <lightning-menu-item
+                    value="markRead"
+                    label="Mark as Read"
+                    onclick={markAsRead}
+                  ></lightning-menu-item>
+                </lightning-button-menu>
+              </td>
+            </tr>
+          </template>
+        </tbody>
+      </table>
+    </div>
+  </lightning-card>
+  <!-- Filter Modal -->
+  <template if:true={isFilterModalOpen}>
+    <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+      <div class="slds-modal__container">
+        <header class="slds-modal__header">
+          <button
+            class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+            onclick={closeFilterModal}
+          >
+            <lightning-icon
+              icon-name="utility:close"
+              size="small"
+            ></lightning-icon>
+            <span class="slds-assistive-text">Close</span>
+          </button>
+          <h2 class="slds-text-heading_medium slds-hyphenate">Filter Alerts</h2>
+        </header>
+        <div class="slds-modal__content slds-p-around_medium">
+          <lightning-combobox
+            name="timeframe"
+            label="Timeframe"
+            value={selectedTimeframe}
+            options={timeframeOptions}
+            onchange={handleTimeframeChange}
+          >
+          </lightning-combobox>
+          <fieldset class="slds-form-element slds-m-top_medium">
+            <legend class="slds-form-element__legend slds-form-element__label">
+              Alert Types
+            </legend>
+            <div class="slds-form-element__control">
+              <template for:each={alertTypes} for:item="type">
+                <div key={type.value} class="slds-checkbox">
+                  <lightning-input
+                    type="checkbox"
+                    label={type.label}
+                    value={type.value}
+                    onchange={handleAlertTypeChange}
+                  ></lightning-input>
+                </div>
+              </template>
+            </div>
+          </fieldset>
+        </div>
+        <footer class="slds-modal__footer">
+          <button
+            class="slds-button slds-button_neutral"
+            onclick={closeFilterModal}
+          >
+            Cancel
+          </button>
+          <button class="slds-button slds-button_brand" onclick={applyFilters}>
+            Apply Filters
+          </button>
+        </footer>
+      </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
+  </template>
+
+  <!-- Detail Modal -->
+  <template if:true={isDetailModalOpen}>
+    <section role="dialog" tabindex="-1" class="slds-modal slds-fade-in-open">
+      <div class="slds-modal__container">
+        <header class="slds-modal__header">
+          <button
+            class="slds-button slds-button_icon slds-modal__close slds-button_icon-inverse"
+            onclick={closeDetailModal}
+          >
+            <lightning-icon
+              icon-name="utility:close"
+              size="small"
+            ></lightning-icon>
+            <span class="slds-assistive-text">Close</span>
+          </button>
+          <h2 class="slds-text-heading_medium slds-hyphenate">
+            {selectedAlert.businessName} - Alert Details
+          </h2>
+        </header>
+        <div class="slds-modal__content slds-p-around_medium">
+          <dl class="slds-dl_horizontal">
+            <dt class="slds-dl_horizontal__label">Alert Type:</dt>
+            <dd class="slds-dl_horizontal__detail">
+              {selectedAlert.description}
+            </dd>
+            <dt class="slds-dl_horizontal__label">Alert ID:</dt>
+            <dd class="slds-dl_horizontal__detail">{selectedAlert.alertId}</dd>
+            <dt class="slds-dl_horizontal__label">Priority:</dt>
+            <dd class="slds-dl_horizontal__detail">{selectedAlert.priority}</dd>
+            <dt class="slds-dl_horizontal__label">Status:</dt>
+            <dd class="slds-dl_horizontal__detail">{selectedAlert.status}</dd>
+            <dt class="slds-dl_horizontal__label">Details:</dt>
+            <dd class="slds-dl_horizontal__detail">{selectedAlert.details}</dd>
+          </dl>
+        </div>
+        <footer class="slds-modal__footer">
+          <button
+            class="slds-button slds-button_neutral"
+            onclick={closeDetailModal}
+          >
+            Close
+          </button>
+        </footer>
+      </div>
+    </section>
+    <div class="slds-backdrop slds-backdrop_open"></div>
+  </template>
+</template>

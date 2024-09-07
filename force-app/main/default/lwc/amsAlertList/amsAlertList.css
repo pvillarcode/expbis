@@ -1,0 +1,46 @@
+.slds-card {
+  background: #ffffff;
+  border-radius: 0.25rem;
+}
+
+.slds-checkbox {
+  margin-bottom: 0.5rem;
+}
+
+/* Updated styling for alert items */
+.alert-item {
+  border: 1px solid #d8dde6;
+  border-radius: 0.25rem;
+  background-color: #f4f6f9;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Style for the badge to enhance priority visibility */
+.slds-badge {
+  background-color: #0070d2;
+  color: #ffffff;
+  font-weight: bold;
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+}
+
+/* Specific styles for read/unread status */
+.slds-badge.read {
+  background-color: #44b700;
+  color: #ffffff;
+}
+
+.slds-badge.unread {
+  background-color: #d93212;
+  color: #ffffff;
+}
+
+/* Optional styles for modal */
+.slds-modal__container {
+  max-width: 40rem;
+}
+
+.slds-backdrop_open {
+  background-color: rgba(0, 0, 0, 0.6);
+}
