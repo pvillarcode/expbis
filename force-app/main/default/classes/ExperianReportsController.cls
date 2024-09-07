@@ -44,6 +44,7 @@ public with sharing class ExperianReportsController {
         (
           SELECT ContentDocument.FileType, ContentDocumentId
           FROM ContentDocumentLinks
+          WHERE ContentDocument.Id != NULL
           ORDER BY SystemModstamp DESC
           LIMIT 1
         )

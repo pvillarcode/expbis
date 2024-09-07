@@ -86,8 +86,11 @@ export default class ExperianReports extends NavigationMixin(LightningElement) {
       FileType:
         report.ContentDocumentLinks && report.ContentDocumentLinks.length > 0
           ? report.ContentDocumentLinks[0].ContentDocument.FileType
-          : null,
-      titleClass: "slds-text-link"
+          : "Deleted",
+      titleClass:
+        report.ContentDocumentLinks && report.ContentDocumentLinks.length > 0
+          ? "slds-text-link"
+          : "slds-text-color_weak"
     }));
   }
 
@@ -112,7 +115,11 @@ export default class ExperianReports extends NavigationMixin(LightningElement) {
         }
       });
     } else {
-      this.showToast("Error", "No file associated with this report", "error");
+      this.showToast(
+        "File Unavailable",
+        "The associated file has been deleted",
+        "warning"
+      );
     }
   }
 
