@@ -1,0 +1,126 @@
+<template>
+  <lightning-modal-header label="Alert Details"></lightning-modal-header>
+  <lightning-modal-body>
+    <template if:true={content}>
+      <div class="slds-grid slds-wrap">
+        <div class="slds-col slds-size_1-of-2 slds-p-around_small">
+          <p><strong>Alert ID:</strong> {results.id}</p>
+          <p><strong>Date:</strong> {formattedDate}</p>
+          <p><strong>Type:</strong> {results.type}</p>
+          <p><strong>Priority Code:</strong> {results.priorityCode}</p>
+        </div>
+        <div class="slds-col slds-size_1-of-2 slds-p-around_small">
+          <p><strong>Definition:</strong> {results.definition}</p>
+          <p><strong>List Type:</strong> {results.listType}</p>
+          <p><strong>Trigger ID:</strong> {results.triggerId}</p>
+          <p>
+            <strong>Customer Routing Code:</strong>
+            {results.customerRoutingCode}
+          </p>
+        </div>
+      </div>
+
+      <div class="slds-section slds-is-open">
+        <h3 class="slds-section__title slds-theme_shade">
+          <span class="slds-truncate" title="Monitored Business"
+            >Monitored Business</span
+          >
+        </h3>
+        <div class="slds-section__content">
+          <p>
+            <strong>Monitored Business Name:</strong>
+            {monitoredBusiness.monitoredBusinessName}
+          </p>
+          <p>
+            <strong>Best Business Name:</strong>
+            {monitoredBusiness.bestBusinessName}
+          </p>
+          <p>
+            <strong>Supplier Number:</strong> {monitoredBusiness.supplierNumber}
+          </p>
+          <p>
+            <strong>User Tracking ID:</strong>
+            {monitoredBusiness.userTrackingId}
+          </p>
+          <p><strong>PBIN:</strong> {monitoredBusiness.pBIN}</p>
+        </div>
+      </div>
+
+      <div class="slds-section slds-is-open">
+        <h3 class="slds-section__title slds-theme_shade">
+          <span class="slds-truncate" title="End Customer Data"
+            >End Customer Data</span
+          >
+        </h3>
+        <div class="slds-section__content">
+          <p><strong>Total Balance:</strong> ${endCustomerData.totalBalance}</p>
+          <p>
+            <strong>Current Balance:</strong> ${endCustomerData.currentBalance}
+          </p>
+          <p>
+            <strong>Balance 1-30 Days:</strong> ${endCustomerData.balance1to30}
+          </p>
+          <p>
+            <strong>Balance 31-60 Days:</strong>
+            ${endCustomerData.balance31to60}
+          </p>
+          <p>
+            <strong>Balance 61-90 Days:</strong>
+            ${endCustomerData.balance61to90}
+          </p>
+          <p>
+            <strong>Balance 91+ Days:</strong> ${endCustomerData.balance91Plus}
+          </p>
+          <p>
+            <strong>Inactive Account:</strong>
+            {endCustomerData.inactiveAcctFlag}
+          </p>
+        </div>
+      </div>
+
+      <div class="slds-section slds-is-open">
+        <h3 class="slds-section__title slds-theme_shade">
+          <span class="slds-truncate" title="Account Totals"
+            >Account Totals</span
+          >
+        </h3>
+        <div class="slds-section__content">
+          <p>
+            <strong>Account Balance:</strong> ${accountTotals.accountBalance}
+          </p>
+          <p>
+            <strong>Past Due 1-30 Days:</strong>
+            ${accountTotals.pastDueAmt1to30}
+          </p>
+          <p>
+            <strong>Past Due 31-60 Days:</strong>
+            ${accountTotals.pastDueAmt31to60}
+          </p>
+          <p>
+            <strong>Past Due 61-90 Days:</strong>
+            ${accountTotals.pastDueAmt61to90}
+          </p>
+          <p>
+            <strong>Past Due 91-120 Days:</strong>
+            ${accountTotals.pastDueAmt91to120}
+          </p>
+          <p>
+            <strong>Past Due 121-150 Days:</strong>
+            ${accountTotals.pastDueAmt121to150}
+          </p>
+          <p>
+            <strong>Past Due 151-180 Days:</strong>
+            ${accountTotals.pastDueAmt151to180}
+          </p>
+          <p>
+            <strong>Past Due 181+ Days:</strong>
+            ${accountTotals.pastDueAmt181Plus}
+          </p>
+        </div>
+      </div>
+    </template>
+  </lightning-modal-body>
+  <lightning-modal-footer>
+    <lightning-button label="Close" onclick={handleClose}></lightning-button>
+  </lightning-modal-footer>
+</template>
