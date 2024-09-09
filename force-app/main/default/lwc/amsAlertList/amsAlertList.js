@@ -1,7 +1,7 @@
-import { LightningElement, track, wire } from "lwc";
-import getAlerts from "@salesforce/apex/ExperianAlertListController.getAlerts";
+import { LightningElement, track } from "lwc";
+import getAlertsByAccount from "@salesforce/apex/ExperianAlertListController.getAlertsByAccount";
 import getFilteredAlerts from "@salesforce/apex/ExperianAlertListController.getFilteredAlerts";
-import updateAlertStatus from "@salesforce/apex/ExperianAlertListController.updateAlertStatus";
+import updateAccountAlertStatus from "@salesforce/apex/ExperianAlertListController.updateAccountAlertStatus";
 
 export default class AmsAlertList extends LightningElement {
   @track alerts = [];
@@ -14,6 +14,7 @@ export default class AmsAlertList extends LightningElement {
   @track searchTerm = "";
   @track selectedTimeframe = "";
   @track selectedAlertTypes = [];
+  @track isLoading = false;
 
   viewOptions = [
     { label: "View All AMS", value: "all" },
@@ -37,21 +38,37 @@ export default class AmsAlertList extends LightningElement {
     { label: "Bankruptcy", value: "BBK" }
   ];
 
-  @wire(getAlerts)
-  wiredAlerts({ error, data }) {
-    if (data) {
-      this.alerts = data.map((alert) => ({
-        ...alert,
-        selected: false,
-        statusClass: alert.Status__c.toLowerCase()
-      }));
-      this.filterAlerts();
-    } else if (error) {
-      console.error("Error fetching alerts:", error);
-    }
+  connectedCallback() {
+    this.loadAlerts();
+  }
+
+  loadAlerts() {
+    this.isLoading = true;
+    getAlertsByAccount()
+      .then((result) => {
+        this.alerts = this.processAlerts(result);
+        this.filteredAlerts = [...this.alerts];
+        this.isLoading = false;
+      })
+      .catch((error) => {
+        console.error("Error fetching alerts:", error);
+        this.isLoading = false;
+      });
+  }
+
+  processAlerts(alerts) {
+    return alerts.map((accountWrapper) => ({
+      ...accountWrapper,
+      statusClass:
+        accountWrapper.alertStatus &&
+        accountWrapper.alertStatus.toLowerCase() === "unread"
+          ? "slds-badge unread"
+          : "slds-badge read"
+    }));
   }
 
   filterAlerts() {
+    this.isLoading = true;
     getFilteredAlerts({
       searchTerm: this.searchTerm,
       selectedView: this.selectedView,
@@ -61,14 +78,12 @@ export default class AmsAlertList extends LightningElement {
         : null
     })
       .then((result) => {
-        this.filteredAlerts = result.map((alert) => ({
-          ...alert,
-          selected: false,
-          statusClass: alert.Status__c.toLowerCase()
-        }));
+        this.filteredAlerts = this.processAlerts(result);
+        this.isLoading = false;
       })
       .catch((error) => {
         console.error("Error filtering alerts:", error);
+        this.isLoading = false;
       });
   }
 
@@ -135,7 +150,7 @@ export default class AmsAlertList extends LightningElement {
     const isChecked = event.target.checked;
 
     if (isChecked) {
-      this.selectedAlertTypes.push(alertType);
+      this.selectedAlertTypes = [...this.selectedAlertTypes, alertType];
     } else {
       this.selectedAlertTypes = this.selectedAlertTypes.filter(
         (type) => type !== alertType
@@ -153,36 +168,70 @@ export default class AmsAlertList extends LightningElement {
     this.searchTerm = "";
     this.selectedTimeframe = "";
     this.selectedAlertTypes = [];
-    this.filterAlerts();
+    this.loadAlerts();
   }
 
   markSelectedAsRead() {
-    const selectedAlertIds = this.filteredAlerts
-      .filter((alert) => alert.selected)
-      .map((alert) => alert.Id);
-    updateAlertStatus({ alertIds: selectedAlertIds, newStatus: "Read" })
-      .then(() => {
-        this.filterAlerts();
-      })
-      .catch((error) => {
-        console.error("Error updating alert status:", error);
-      });
-  }
-
-  deleteSelected() {
-    // Note: Implement delete functionality if required
-    console.log("Delete functionality not implemented");
+    const selectedAccountIds = this.filteredAlerts
+      .filter((account) => account.selected)
+      .map((account) => account.accountId);
+    if (selectedAccountIds.length > 0) {
+      this.updateAlertStatus(selectedAccountIds, "Read");
+    } else {
+      // Optionally, show a message that no accounts were selected
+      console.log("No accounts selected to mark as read");
+    }
   }
 
   markAsRead(event) {
-    const alertId = event.target.dataset.id;
-    updateAlertStatus({ alertIds: [alertId], newStatus: "Read" })
+    const accountId = event.target.dataset.id;
+    this.updateAlertStatus([accountId], "Read");
+  }
+
+  updateAlertStatus(accountIds, newStatus) {
+    this.isLoading = true;
+    updateAccountAlertStatus({ accountIds, newStatus })
       .then(() => {
-        this.filterAlerts();
+        // Update local data instead of reloading all alerts
+        this.updateLocalAlertStatus(accountIds, newStatus);
+        this.isLoading = false;
       })
       .catch((error) => {
-        console.error("Error updating alert status:", error);
+        console.error("Error updating account alert status:", error);
+        this.isLoading = false;
+        // Handle error (e.g., show error toast)
       });
+  }
+
+  updateLocalAlertStatus(accountIds, newStatus) {
+    this.filteredAlerts = this.filteredAlerts.map((alert) => {
+      if (accountIds.includes(alert.accountId)) {
+        return {
+          ...alert,
+          alertStatus: newStatus,
+          statusClass:
+            newStatus.toLowerCase() === "unread"
+              ? "slds-badge unread"
+              : "slds-badge read"
+        };
+      }
+      return alert;
+    });
+
+    // If you're also maintaining a separate alerts array, update it too
+    this.alerts = this.alerts.map((alert) => {
+      if (accountIds.includes(alert.accountId)) {
+        return {
+          ...alert,
+          alertStatus: newStatus,
+          statusClass:
+            newStatus.toLowerCase() === "unread"
+              ? "slds-badge unread"
+              : "slds-badge read"
+        };
+      }
+      return alert;
+    });
   }
 
   printAlerts() {
@@ -197,17 +246,28 @@ export default class AmsAlertList extends LightningElement {
   }
 
   exportAlerts() {
-    const csv = this.filteredAlerts
-      .map((alert) =>
+    const headers = [
+      "Business Name",
+      "Alert Type",
+      "Alert ID",
+      "Priority",
+      "Status"
+    ];
+    const csv = [
+      headers.join(","),
+      ...this.filteredAlerts.map((alert) =>
         [
           alert.Name,
           alert.Definition__c,
           alert.Alert_ID__c,
           alert.Priority__c,
           alert.Status__c
-        ].join(",")
+        ]
+          .map((field) => `"${field}"`)
+          .join(",")
       )
-      .join("\n");
+    ].join("\n");
+
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const link = document.createElement("a");
     if (link.download !== undefined) {

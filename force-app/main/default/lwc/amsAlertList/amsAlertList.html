@@ -97,7 +97,7 @@
           </tr>
         </thead>
         <tbody>
-          <template for:each={filteredAlerts} for:item="alert">
+          <template for:each={alerts} for:item="alert">
             <tr
               key={alert.Id}
               class="slds-hint-parent"
@@ -112,12 +112,12 @@
                   onchange={handleSelectAlert}
                 ></lightning-input>
               </td>
-              <td>{alert.Name}</td>
-              <td>{alert.Alert_ID__c}</td>
-              <td>{alert.Definition__c}</td>
+              <td>{alert.accountName}</td>
+              <td>{alert.alertCount}</td>
+              <td>{alert.summary}</td>
               <td>{alert.Priority__c}</td>
               <td>
-                <span class={alert.statusClass}>{alert.Status__c}</span>
+                <span class={alert.statusClass}>{alert.alertStatus}</span>
               </td>
               <td>
                 <lightning-button-menu alternative-text="Actions">

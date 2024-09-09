@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomObject xmlns="http://soap.sforce.com/2006/04/metadata">
+    <deploymentStatus>Deployed</deploymentStatus>
+    <description
+  >Event to initiate the experian processing of an account in batch</description>
+    <eventType>HighVolume</eventType>
+    <label>Experian Account Processing Event</label>
+    <pluralLabel>Experian Account Processing Events</pluralLabel>
+    <publishBehavior>PublishAfterCommit</publishBehavior>
+</CustomObject>

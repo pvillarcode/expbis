@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Triggered_Rule__c</fullName>
+    <description
+  >example: If Scorecard is S4 and IntelliscorePlusScore is 1.0 to 43.0 and Yearsinfile is 1 to 9 then Approve.</description>
+    <label>Triggered Rule</label>
+    <required>false</required>
+    <trackTrending>false</trackTrending>
+    <type>TextArea</type>
+</CustomField>
