@@ -1,5 +1,3 @@
-// ExperianLogger.log('Experian_ScheduleBISToken Token has been updated', ExperianLogger.LogLevel.INFO);
-
 public without sharing class ExperianLogger {
   public enum LogLevel {
     DISABLED,

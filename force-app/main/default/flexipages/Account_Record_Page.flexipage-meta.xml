@@ -64,6 +64,12 @@
         </itemInstances>
         <itemInstances>
             <componentInstance>
+                <componentName>experianAccountAlerts</componentName>
+                <identifier>c_experianAccountAlerts</identifier>
+            </componentInstance>
+        </itemInstances>
+        <itemInstances>
+            <componentInstance>
                 <componentInstanceProperties>
                     <name>displayOption</name>
                     <value>BOTH</value>

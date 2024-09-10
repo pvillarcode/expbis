@@ -1,5 +1,6 @@
 import { LightningElement, api, track } from "lwc";
 
+//component not being used TODO:remove
 export default class RpReportDisplay extends LightningElement {
   @api businessId;
   @api reportType;
@@ -52,5 +53,9 @@ export default class RpReportDisplay extends LightningElement {
 
   renderHtml(htmlContent) {
     console.log("htmlContent:", htmlContent);
+    const container = this.template.querySelector(".report-container");
+    if (container) {
+      console.log("htmlContent:", htmlContent);
+    }
   }
 }

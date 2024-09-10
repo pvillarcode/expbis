@@ -27,6 +27,7 @@ export default class ExperianBusinessInfo extends LightningElement {
     getExperianBusinessInfo({ accountId: this.accountId })
       .then((result) => {
         if (result && result.length > 0) {
+          console.log("Experian Business Data: ", result[0]);
           this.experianBusinessRecords = result[0];
           this.hasData = true;
         } else {

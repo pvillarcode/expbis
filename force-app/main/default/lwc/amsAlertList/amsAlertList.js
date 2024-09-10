@@ -108,9 +108,9 @@ export default class AmsAlertList extends LightningElement {
   handleSelectAlert(event) {
     const alertId = event.target.name;
     const isChecked = event.target.checked;
-    this.filteredAlerts = this.filteredAlerts.map((alert) => {
-      return alert.Id === alertId ? { ...alert, selected: isChecked } : alert;
-    });
+    this.filteredAlerts = this.filteredAlerts.map((alert) =>
+      alert.Id === alertId ? { ...alert, selected: isChecked } : alert
+    );
   }
 
   openFilterModal() {
