@@ -58,13 +58,10 @@ public with sharing class PullReport {
         bin
     );
     try {
-      Experian_Configuration__c setting = ExperianApiService.getBIQConfig();
-      System.debug('Retrieved Experian configuration: ' + setting);
-
       // Make the callouts
-      String jsonReport = getJSONReport(bin, setting);
+      String jsonReport = getJSONReport(bin);
       System.debug('Retrieved JSON report: ' + jsonReport);
-      String pdfReport = getPDFReport(bin, setting);
+      String pdfReport = getPDFReport(bin);
       System.debug('Retrieved PDF report');
 
       // Process and save the data
@@ -73,6 +70,7 @@ public with sharing class PullReport {
         accountId
       );
       System.debug('Saved Experian information: ' + experianBusiness);
+
       String contentDocumentId = savePDFToSalesforce(
         pdfReport,
         'PremierProfile_' + System.now().getTime(),
@@ -86,6 +84,11 @@ public with sharing class PullReport {
         'accountId' => accountId,
         'contentDocumentId' => contentDocumentId
       };
+    } catch (System.LimitException e) {
+      System.debug('Storage limit exception: ' + e.getMessage());
+      throw new AuraHandledException(
+        'Storage limit exceeded. Please contact your administrator.'
+      );
     } catch (Exception e) {
       System.debug('Exception caught: ' + e.getMessage());
       throw new AuraHandledException(
@@ -96,7 +99,9 @@ public with sharing class PullReport {
 
   @AuraEnabled
   public static List<Experian_Scoring_Model__c> getScoringModels() {
-    Experian_Configuration__c setting = ExperianApiService.getBIQConfig();
+    ExperianApiService.ExperianConfigWrapper wrapper = ExperianApiService.getBIQConfig();
+    Experian_Configuration__c setting = wrapper.config;
+    ExperianApiService.ExperianEndpoints endpoints = wrapper.endpoints;
 
     List<Experian_Scoring_Model__c> scoringModels = [
       SELECT Id, Name, Model_Code__c
@@ -107,15 +112,16 @@ public with sharing class PullReport {
     return scoringModels;
   }
 
-  private static String getJSONReport(
-    String bin,
-    Experian_Configuration__c setting
-  ) {
+  private static String getJSONReport(String bin) {
+    ExperianApiService.ExperianConfigWrapper wrapper = ExperianApiService.getBIQConfig();
+    Experian_Configuration__c setting = wrapper.config;
+    ExperianApiService.ExperianEndpoints endpoints = wrapper.endpoints;
+
     HttpRequest req = new HttpRequest();
     System.debug('Initializing HttpRequest');
 
-    req.setEndpoint(ENDPOINT_JSON_URL);
-    System.debug('Set endpoint: ' + ENDPOINT_JSON_URL);
+    req.setEndpoint(endpoints.premierProfileJsonUrl);
+    System.debug('Set endpoint: ' + endpoints.premierProfileJsonUrl);
 
     req.setMethod('POST');
     System.debug('Set method to POST');
@@ -131,7 +137,7 @@ public with sharing class PullReport {
 
     Map<String, Object> requestBody = new Map<String, Object>{
       'bin' => bin,
-      'subcode' => DEFAULT_SUBCODE
+      'subcode' => setting.Default_Subcode__c
     };
     req.setBody(JSON.serialize(requestBody));
     System.debug('Set request body: ' + JSON.serialize(requestBody));
@@ -154,10 +160,11 @@ public with sharing class PullReport {
   }
 
   @AuraEnabled
-  public static String getPDFReport(
-    String bin,
-    Experian_Configuration__c setting
-  ) {
+  public static String getPDFReport(String bin) {
+    ExperianApiService.ExperianConfigWrapper wrapper = ExperianApiService.getBIQConfig();
+    Experian_Configuration__c setting = wrapper.config;
+    ExperianApiService.ExperianEndpoints endpoints = wrapper.endpoints;
+
     if (String.isBlank(bin)) {
       System.debug('BIN is blank, returning null');
       return null;
@@ -174,8 +181,8 @@ public with sharing class PullReport {
     req.setTimeout(TIMEOUT);
     System.debug('Set timeout to ' + TIMEOUT);
 
-    req.setEndpoint(ENDPOINT_PDF_URL);
-    System.debug('Set endpoint: ' + ENDPOINT_PDF_URL);
+    req.setEndpoint(endpoints.premierProfilePdfUrl);
+    System.debug('Set endpoint: ' + endpoints.premierProfilePdfUrl);
 
     req.setHeader('Accept', 'application/pdf');
     System.debug('Set Accept header to application/pdf');
@@ -191,7 +198,7 @@ public with sharing class PullReport {
 
     Map<String, Object> requestBody = new Map<String, Object>{
       'bin' => bin,
-      'subcode' => DEFAULT_SUBCODE
+      'subcode' => setting.Default_Subcode__c
     };
     req.setBody(JSON.serialize(requestBody));
     System.debug('Set request body: ' + JSON.serialize(requestBody));
@@ -278,22 +285,52 @@ public with sharing class PullReport {
     String fileName,
     Id linkedRecordId
   ) {
-    ContentVersion cv = new ContentVersion();
-    cv.VersionData = EncodingUtil.base64Decode(base64Data);
-    cv.Title = fileName;
-    cv.PathOnClient = fileName + '.pdf';
-    insert cv;
+    try {
+      ExperianLogger.log(
+        'Creating Content Version for file: ' + fileName,
+        ExperianLogger.LogLevel.DEBUG
+      );
+      ContentVersion cv = new ContentVersion();
+      cv.VersionData = EncodingUtil.base64Decode(base64Data);
+      cv.Title = fileName;
+      cv.PathOnClient = fileName + '.pdf';
+      insert cv;
 
-    cv = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
-    System.debug('ContentDocumentId retrieved: ' + cv.ContentDocumentId);
+      cv = [SELECT ContentDocumentId FROM ContentVersion WHERE Id = :cv.Id];
+      ExperianLogger.log(
+        'ContentDocumentId retrieved: ' + cv.ContentDocumentId,
+        ExperianLogger.LogLevel.DEBUG
+      );
 
-    ContentDocumentLink cdl = new ContentDocumentLink();
-    cdl.ContentDocumentId = cv.ContentDocumentId;
-    cdl.LinkedEntityId = linkedRecordId; // Link to the new Experian_Report__c record
-    cdl.ShareType = 'V';
-    insert cdl;
+      ContentDocumentLink cdl = new ContentDocumentLink();
+      cdl.ContentDocumentId = cv.ContentDocumentId;
+      cdl.LinkedEntityId = linkedRecordId;
+      cdl.ShareType = 'V';
+      insert cdl;
 
-    return cv.ContentDocumentId;
+      ExperianLogger.log(
+        'Content Version created and linked successfully',
+        ExperianLogger.LogLevel.DEBUG
+      );
+      return cv.ContentDocumentId;
+    } catch (Exception e) {
+      System.debug(
+        'Error creating Content Version: ' +
+          e.getMessage() +
+          '\n' +
+          e.getStackTraceString()
+      );
+      ExperianLogger.log(
+        'Error creating Content Version: ' +
+          e.getMessage() +
+          '\n' +
+          e.getStackTraceString(),
+        ExperianLogger.LogLevel.ERROR
+      );
+      throw new AuraHandledException(
+        'Error creating Content Version: ' + e.getMessage()
+      );
+    }
   }
 
   private static Experian_Business__c saveExperianInformation(

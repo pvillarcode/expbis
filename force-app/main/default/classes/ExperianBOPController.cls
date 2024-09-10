@@ -12,14 +12,16 @@ public with sharing class ExperianBOPController {
 
     try {
       // Parse the formData JSON string into a Map
-      Experian_Configuration__c setting = ExperianApiService.getBIQConfig();
+      ExperianApiService.ExperianConfigWrapper wrapper = ExperianApiService.getBIQConfig();
+      Experian_Configuration__c setting = wrapper.config;
+      ExperianApiService.ExperianEndpoints endpoints = wrapper.endpoints;
       Map<String, Object> data = (Map<String, Object>) JSON.deserializeUntyped(
         formData
       );
 
       // Create the JSON structure
       Map<String, Object> jsonRequest = new Map<String, Object>();
-      jsonRequest.put('subcode', DEFAULT_SUBCODE);
+      jsonRequest.put('subcode', setting.Default_Subcode__c);
       jsonRequest.put('comments', 'Test comment');
 
       Map<String, Object> ownerName = new Map<String, Object>();
@@ -50,7 +52,7 @@ public with sharing class ExperianBOPController {
       HttpRequest req = new HttpRequest();
       req.setMethod('POST');
       req.setTimeout(TIMEOUT);
-      req.setEndpoint(ENDPOINT_JSON_URL);
+      req.setEndpoint(endpoints.bopPdfUrl);
       req.setHeader('Accept', 'application/json');
       req.setHeader('Content-type', 'application/json');
       req.setHeader(

@@ -34,15 +34,21 @@ public without sharing class ExperianLogger {
 
   public static void log(String message, LogLevel logLevel) {
     if (shouldLog(logLevel)) {
+      // Truncate the message if it's longer than 255 characters
+      String truncatedMessage = message.length() > 254
+        ? message.substring(0, 248) + '...'
+        : message;
+
       Experian_Logs__c logEntry = new Experian_Logs__c(
-        Message__c = message,
+        Message__c = truncatedMessage,
         Log_Level__c = logLevel.name()
       );
 
       try {
         insert logEntry;
       } catch (Exception e) {
-        handleLoggingError(e, message, logLevel);
+        throw e;
+        // handleLoggingError(e, truncatedMessage, logLevel);
       }
     }
   }

@@ -16,7 +16,9 @@ public with sharing class BusinessSearch {
     Map<String, String> searchCriteria
   ) {
     List<BusinessResult> results = new List<BusinessResult>();
-    Experian_Configuration__c setting = ExperianApiService.getBIQConfig();
+    ExperianApiService.ExperianConfigWrapper wrapper = ExperianApiService.getBIQConfig();
+    Experian_Configuration__c setting = wrapper.config;
+    ExperianApiService.ExperianEndpoints endpoints = wrapper.endpoints;
     SearchBusinessReqWrapper reqWrapper = new SearchBusinessReqWrapper();
 
     try {
@@ -30,7 +32,7 @@ public with sharing class BusinessSearch {
       // Set default values for subcode and geo if they're not in searchCriteria
       reqWrapper.subcode = searchCriteria.containsKey(KEY_SUBCODE)
         ? searchCriteria.get(KEY_SUBCODE)
-        : DEFAULT_SUBCODE;
+        : setting.Default_Subcode__c;
       reqWrapper.geo = searchCriteria.containsKey(KEY_GEO)
         ? Boolean.valueOf(searchCriteria.get(KEY_GEO))
         : false;
@@ -38,7 +40,7 @@ public with sharing class BusinessSearch {
       HttpRequest req = new HttpRequest();
       req.setMethod('POST');
       req.setTimeout(TIMEOUT);
-      req.setEndpoint(ENDPOINT_URL);
+      req.setEndpoint(endpoints.searchUrl);
       req.setHeader('Accept', 'application/json');
       req.setHeader('Content-type', 'application/json');
       req.setHeader(

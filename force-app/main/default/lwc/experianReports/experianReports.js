@@ -44,7 +44,7 @@ export default class ExperianReports extends NavigationMixin(LightningElement) {
   @track reports = [];
   @track error;
   @track currentPage = 1;
-  @track pageSize = 10;
+  @track pageSize = 5;
   @track totalRecords = 0;
   @track sortBy;
   @track sortDirection;

@@ -140,24 +140,31 @@ export default class RpPullReportTab extends NavigationMixin(LightningElement) {
 
     this.isLoading = true;
     try {
+      console.log("Step 1: Initiating the report process");
       // Step 1: Initiate the report process
       const initialResult = await initiateReportProcess({
         jsonData: JSON.stringify(this.selectedBusiness),
         accountId: this.accountId
       });
+      console.log("Step 1 completed: Initial result received", initialResult);
 
+      console.log("Step 2: Completing the report process");
       // Step 2: Complete the report process
       const finalResult = await completeReportProcess({
         accountId: initialResult.accountId,
         bin: initialResult.bin
       });
+      console.log("Step 2 completed: Final result received", finalResult);
 
       // Handle the final result
       this.handleReportSuccess(finalResult);
+      console.log("Report handling success");
     } catch (error) {
-      this.handleError(error);
+      console.log("Error occurred during report process", error);
+      this.showToast("Error", error.body.message, "error");
     } finally {
       this.isLoading = false;
+      console.log("Report process completed, loading state set to false");
     }
   }
 

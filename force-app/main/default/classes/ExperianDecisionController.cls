@@ -168,25 +168,28 @@ public with sharing class ExperianDecisionController {
   }
 
   private static Map<String, Object> getDecisionApiCall(String bin) {
-    Experian_Configuration__c setting = ExperianApiService.getBIQConfig();
+    ExperianApiService.ExperianConfigWrapper wrapper = ExperianApiService.getBIQConfig();
+    Experian_Configuration__c setting = wrapper.config;
+    ExperianApiService.ExperianEndpoints endpoints = wrapper.endpoints;
 
     // Construct the request body
     Map<String, Object> requestBody = new Map<String, Object>{
       'comments' => 'Testing',
       'bin' => bin,
-      'creditPolicyId' => '830',
-      'subcode' => DEFAULT_SUBCODE,
-      'userId' => USER_ID
+      'creditPolicyId' => setting.DecisionIQ_Default_Policy_ID__c,
+      'subcode' => setting.Decision_IQ_Subcode__c,
+      'userId' => setting.DIQ_user_id__c
     };
 
     // Serialize the request body to JSON
     String jsonBody = JSON.serialize(requestBody);
+    System.debug(requestBody);
 
     // Set up the HTTP request
     HttpRequest req = new HttpRequest();
     req.setMethod('POST');
     req.setTimeout(TIMEOUT);
-    req.setEndpoint(ENDPOINT_JSON_URL);
+    req.setEndpoint(endpoints.decisionBasicUrl);
     req.setHeader('Accept', 'application/json');
     req.setHeader('Content-type', 'application/json');
     req.setHeader(

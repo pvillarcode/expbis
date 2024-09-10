@@ -10,14 +10,16 @@ System.schedule('Experian_ScheduleBISToken2', '0 20 * * * ?', new Experian_Sched
 System.schedule('Experian_ScheduleBISToken3', '0 40 * * * ?', new Experian_ScheduleBISToken());
 */
 
-global class Experian_ScheduleBISToken implements Schedulable {
+global without sharing class Experian_ScheduleBISToken implements Schedulable {
   global void execute(SchedulableContext sc) {
     getBISToken();
   }
 
   @future(callout=true)
   public static void getBISToken() {
-    Experian_Configuration__c setting = ExperianApiService.getBIQConfig();
+    ExperianApiService.ExperianConfigWrapper wrapper = ExperianApiService.getBIQConfig();
+    Experian_Configuration__c setting = wrapper.config;
+    ExperianApiService.ExperianEndpoints endpoints = wrapper.endpoints;
 
     try {
       String body =
@@ -34,7 +36,7 @@ global class Experian_ScheduleBISToken implements Schedulable {
       Http http = new Http();
 
       HttpRequest request = new HttpRequest();
-      request.setEndpoint(setting.Experian_Token_URL__c);
+      request.setEndpoint(endpoints.tokenUrl); // Use the new endpoints object
       request.setMethod('POST');
       request.setHeader('Content-type', 'application/json');
       request.setHeader('Accept', 'application/json');
