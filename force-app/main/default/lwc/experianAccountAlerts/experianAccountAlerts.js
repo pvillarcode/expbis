@@ -23,7 +23,7 @@ export default class ExperianAccountAlerts extends LightningElement {
       this.alertStatus = result.data.alertStatus;
       this.alerts = result.data.alerts;
       this.isLoading = false;
-      if (this.isUnread) {
+      if (this.isUnread && this.hasAlerts) {
         this.showToast(
           "Unread Alerts",
           "You have unread account alerts.",
@@ -45,6 +45,14 @@ export default class ExperianAccountAlerts extends LightningElement {
 
   get alertStatusClass() {
     return this.isUnread ? "slds-theme_error" : "slds-theme_success";
+  }
+
+  get showUnreadStatus() {
+    return this.hasAlerts && this.isUnread;
+  }
+
+  get showMarkAsReadButton() {
+    return this.hasAlerts && this.isUnread;
   }
 
   handleMarkAsRead() {
