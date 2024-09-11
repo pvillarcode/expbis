@@ -24,31 +24,21 @@ public with sharing class ExperianDecisionController {
   }
 
   @AuraEnabled
-  public static Map<String, Object> pullNewDecision(String accountId) {
-    System.debug('pullNewDecision called with accountId: ' + accountId);
+  public static Map<String, Object> initiateDecisionProcess(String accountId) {
     try {
       // Check for existing Experian_Business__c record
       Experian_Business__c experianBusiness = getExperianBusinessForAccount(
         accountId
       );
 
-      String bin;
-      String experianName;
-      Decimal reliabilityCode;
-      BusinessSearch.BusinessResult businessResult;
-
       if (
         experianBusiness != null && String.isNotBlank(experianBusiness.BIN__c)
       ) {
-        // Use existing BIN
-        bin = experianBusiness.BIN__c;
-        experianName = experianBusiness.Name;
-        reliabilityCode = 100; // Assume high reliability for existing records
+        // Existing business found, pull decision directly
+        return pullDecisionForExistingBusiness(experianBusiness);
       } else {
-        // No existing BIN, use getLOS
+        // No existing business, perform LOS search
         Account acc = BusinessSearch.getAccountDetails(accountId);
-
-        // Prepare search criteria for getLOS
         Map<String, String> searchCriteria = new Map<String, String>{
           'businessName' => acc.Name,
           'address' => acc.BillingStreet,
@@ -57,7 +47,6 @@ public with sharing class ExperianDecisionController {
           'zipcode' => acc.BillingPostalCode
         };
 
-        // Call getLOS to get the BIN
         List<BusinessSearch.BusinessResult> results = BusinessSearch.getLOS(
           searchCriteria
         );
@@ -65,106 +54,215 @@ public with sharing class ExperianDecisionController {
         if (results.isEmpty()) {
           return new Map<String, Object>{
             'success' => false,
-            'message' => 'No matching business found in Experian database.'
+            'message' => 'No matching businesses found in Experian database.'
           };
         }
 
-        businessResult = results[0];
-        bin = businessResult.bin;
-        experianName = businessResult.name;
-        reliabilityCode = businessResult.reliabilityCode;
-      }
-
-      if (reliabilityCode <= MIN_RELIABILITY_CODE) {
+        // Return the list of businesses for user selection
         return new Map<String, Object>{
-          'success' => false,
-          'message' => 'Reliability code (' +
-          reliabilityCode +
-          ') is too low for business ' +
-          experianName +
-          ' with BIN ' +
-          bin +
-          '.'
+          'success' => true,
+          'businessResults' => results
         };
       }
+    } catch (Exception e) {
+      ExperianLogger.log(
+        'Error initiating decision process: ' + e.getMessage(),
+        ExperianLogger.LogLevel.ERROR
+      );
+      throw new AuraHandledException(
+        'Error initiating decision process: ' + e.getMessage()
+      );
+    }
+  }
 
-      // Create Experian_Business__c record if it doesn't exist and reliabilityCode is sufficient
-      if (experianBusiness == null && businessResult != null) {
-        experianBusiness = createExperianBusinessRecord(
-          accountId,
-          businessResult
-        );
-      }
-
-      // Call the API using the separate method
-      System.debug('Calling getDecisionApiCall with BIN: ' + bin);
+  @AuraEnabled
+  public static Map<String, Object> pullDecisionForSelectedBusiness(
+    String accountId,
+    String bin,
+    String businessName,
+    String street,
+    String city,
+    String state,
+    String zip
+  ) {
+    try {
       Map<String, Object> apiResponse = getDecisionApiCall(bin);
-      System.debug('API Response: ' + apiResponse);
 
       if (apiResponse.containsKey('error')) {
-        System.debug('API returned an error: ' + apiResponse.get('error'));
         return new Map<String, Object>{
           'success' => false,
           'message' => (String) apiResponse.get('error')
         };
       }
 
-      // Process the successful response
-      System.debug('Creating Experian Decision record');
+      // Extract necessary information from apiResponse
+      String score = (String) apiResponse.get('score');
+      String decision = (String) apiResponse.get('decision');
+      String creditLimit = (String) apiResponse.get('creditLimit');
+      String triggeredRule = (String) apiResponse.get('triggeredRule');
+
+      // Create the Experian_Decision__c record synchronously
       Experian_Decision__c newDecision = createExperianDecisionRecord(
         accountId,
-        apiResponse
+        score,
+        decision,
+        creditLimit,
+        triggeredRule
       );
-      System.debug('New Experian Decision record: ' + newDecision);
+
+      // Create the Experian_Business__c record asynchronously
+      createExperianBusinessAsync(
+        accountId,
+        bin,
+        businessName,
+        street,
+        city,
+        state,
+        zip
+      );
 
       return new Map<String, Object>{
         'success' => true,
         'decision' => newDecision,
         'message' => 'Experian Decision pulled successfully for Business ' +
-        experianName +
+        businessName +
         ' with BIN ' +
         bin +
         '.'
       };
     } catch (Exception e) {
-      System.debug('Exception occurred: ' + e.getMessage());
       ExperianLogger.log(
-        'Error pulling new decision: ' + e.getMessage(),
+        'Error pulling decision for selected business: ' + e.getMessage(),
         ExperianLogger.LogLevel.ERROR
       );
       throw new AuraHandledException(
-        'Error pulling new decision: ' + e.getMessage()
+        'Error pulling decision for selected business: ' + e.getMessage()
       );
     }
+  }
+  private static Map<String, Object> pullDecisionForExistingBusiness(
+    Experian_Business__c experianBusiness
+  ) {
+    try {
+      Map<String, Object> apiResponse = getDecisionApiCall(
+        experianBusiness.BIN__c
+      );
+
+      if (apiResponse.containsKey('error')) {
+        return new Map<String, Object>{
+          'success' => false,
+          'message' => (String) apiResponse.get('error')
+        };
+      }
+
+      // Extract necessary information from apiResponse
+      String score = (String) apiResponse.get('score');
+      String decision = (String) apiResponse.get('decision');
+      String creditLimit = (String) apiResponse.get('creditLimit');
+      String triggeredRule = (String) apiResponse.get('triggeredRule');
+
+      // Process the successful response
+      Experian_Decision__c newDecision = createExperianDecisionRecord(
+        experianBusiness.Account__c,
+        score,
+        decision,
+        creditLimit,
+        triggeredRule
+      );
+
+      return new Map<String, Object>{
+        'success' => true,
+        'decision' => newDecision,
+        'message' => 'Experian Decision pulled successfully for Business ' +
+        experianBusiness.Name +
+        ' with BIN ' +
+        experianBusiness.BIN__c +
+        '.'
+      };
+    } catch (Exception e) {
+      ExperianLogger.log(
+        'Error pulling decision for existing business: ' + e.getMessage(),
+        ExperianLogger.LogLevel.ERROR
+      );
+      throw new AuraHandledException(
+        'Error pulling decision for existing business: ' + e.getMessage()
+      );
+    }
+  }
+
+  @future
+  private static void createExperianBusinessAsync(
+    String accountId,
+    String bin,
+    String businessName,
+    String street,
+    String city,
+    String state,
+    String zip
+  ) {
+    try {
+      Experian_Business__c experianBusiness = new Experian_Business__c(
+        Account__c = accountId,
+        Name = businessName,
+        BIN__c = bin,
+        Street_Address__c = street,
+        City__c = city,
+        State__c = state,
+        Zip__c = zip
+      );
+      insert experianBusiness;
+    } catch (Exception e) {
+      ExperianLogger.log(
+        'Error creating Experian Business record asynchronously: ' +
+        e.getMessage(),
+        ExperianLogger.LogLevel.ERROR
+      );
+    }
+  }
+
+  private static Experian_Decision__c createExperianDecisionRecord(
+    String accountId,
+    String score,
+    String decision,
+    String creditLimit,
+    String triggeredRule
+  ) {
+    Experian_Decision__c newDecision = new Experian_Decision__c(
+      Account__c = accountId,
+      Score__c = score,
+      Decision__c = decision,
+      Credit_Limit__c = creditLimit,
+      Triggered_Rule__c = triggeredRule,
+      Name = 'Decision ' + Datetime.now().format('yyyy-MM-dd HH:mm:ss')
+    );
+
+    insert newDecision;
+    newDecision = [
+      SELECT
+        Id,
+        CreatedDate,
+        Score__c,
+        Decision__c,
+        Credit_Limit__c,
+        Triggered_Rule__c
+      FROM Experian_Decision__c
+      WHERE Id = :newDecision.Id
+      LIMIT 1
+    ];
+
+    return newDecision;
   }
 
   private static Experian_Business__c getExperianBusinessForAccount(
     String accountId
   ) {
     List<Experian_Business__c> experianBusinesses = [
-      SELECT Id, Name, BIN__c
+      SELECT Id, Name, BIN__c, Account__c
       FROM Experian_Business__c
       WHERE Account__c = :accountId AND BIN__c != NULL
       LIMIT 1
     ];
     return experianBusinesses.isEmpty() ? null : experianBusinesses[0];
-  }
-
-  private static Experian_Business__c createExperianBusinessRecord(
-    String accountId,
-    BusinessSearch.BusinessResult businessResult
-  ) {
-    Experian_Business__c newBusiness = new Experian_Business__c(
-      Account__c = accountId,
-      Name = businessResult.name,
-      BIN__c = businessResult.bin,
-      Street_Address__c = businessResult.address,
-      City__c = businessResult.city,
-      State__c = businessResult.state,
-      Zip__c = businessResult.zip
-    );
-    insert newBusiness;
-    return newBusiness;
   }
 
   private static Map<String, Object> getDecisionApiCall(String bin) {
@@ -183,7 +281,6 @@ public with sharing class ExperianDecisionController {
 
     // Serialize the request body to JSON
     String jsonBody = JSON.serialize(requestBody);
-    System.debug(requestBody);
 
     // Set up the HTTP request
     HttpRequest req = new HttpRequest();
@@ -243,76 +340,5 @@ public with sharing class ExperianDecisionController {
     );
 
     return new Map<String, Object>{ 'error' => errorMessage };
-  }
-
-  private static Experian_Decision__c createExperianDecisionRecord(
-    String accountId,
-    Map<String, Object> decisionData
-  ) {
-    Experian_Decision__c newDecision = new Experian_Decision__c(
-      Account__c = accountId,
-      Score__c = (String) decisionData.get('score'),
-      Decision__c = (String) decisionData.get('decision'),
-      Credit_Limit__c = (String) decisionData.get('creditLimit'),
-      Triggered_Rule__c = (String) decisionData.get('triggeredRule'),
-      Name = 'Decision ' + Datetime.now().format('yyyy-MM-dd HH:mm:ss')
-    );
-
-    insert newDecision;
-    return newDecision;
-  }
-
-  private static Experian_Decision__c createExperianDecisionRecord(
-    String accountId,
-    String score,
-    String decision,
-    String creditLimit,
-    String triggeredRule
-  ) {
-    Experian_Decision__c newDecision = new Experian_Decision__c(
-      Account__c = accountId,
-      Score__c = score,
-      Decision__c = decision,
-      Credit_Limit__c = creditLimit,
-      Triggered_Rule__c = triggeredRule,
-      Name = 'Decision ' + Datetime.now().format('yyyy-MM-dd HH:mm:ss')
-    );
-
-    insert newDecision;
-    return newDecision;
-  }
-
-  private static String getStatusClass(String decision) {
-    switch on decision.toUpperCase() {
-      when 'APPROVE' {
-        return 'slds-text-color_success';
-      }
-      when 'DECLINE' {
-        return 'slds-text-color_error';
-      }
-      when 'MANUAL REVIEW' {
-        return 'slds-text-color_warning';
-      }
-      when else {
-        return 'slds-text-color_weak';
-      }
-    }
-  }
-
-  private static String getStatusIcon(String decision) {
-    switch on decision.toUpperCase() {
-      when 'APPROVE' {
-        return 'utility:check';
-      }
-      when 'DECLINE' {
-        return 'utility:close';
-      }
-      when 'MANUAL REVIEW' {
-        return 'utility:warning';
-      }
-      when else {
-        return 'utility:help';
-      }
-    }
   }
 }

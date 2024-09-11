@@ -1,222 +1,191 @@
 <template>
-  <div class="slds-card slds-card_boundary">
-    <div class="slds-card__header slds-grid">
-      <header class="slds-media slds-media_center slds-has-flexi-truncate">
-        <div class="slds-media__figure">
-          <span
-            class="slds-icon_container slds-icon-standard-strategy"
-            title="Experian Decisions"
-          >
-            <lightning-icon
-              icon-name="standard:strategy"
-              alternative-text="Experian Decisions"
-              size="small"
-            ></lightning-icon>
-          </span>
+  <lightning-card title="Experian Decisions" icon-name="standard:strategy">
+    <!-- Current Decision Section -->
+    <div class="slds-m-around_medium">
+      <div class="slds-card__header slds-grid">
+        <header class="slds-media slds-media_center slds-has-flexi-truncate">
+          <div if:true={currentDecision.id} class="slds-media__body">
+            <h3 class="slds-text-heading_small">Current Decision</h3>
+            <div class="slds-media__figure slds-var-m-top_small">
+              <lightning-icon
+                icon-name={currentDecision.icon}
+                size="small"
+                alternative-text={currentDecision.decision}
+              ></lightning-icon>
+              <span class="slds-var-m-left_small {currentDecision.statusClass}"
+                >{currentDecision.decision}</span
+              >
+            </div>
+          </div>
+        </header>
+        <div class="slds-no-flex">
+          <lightning-button
+            label="Get new Decision"
+            variant="brand"
+            onclick={handlePullNewDecision}
+            disabled={isLoading}
+          ></lightning-button>
         </div>
-        <div class="slds-media__body">
-          <h2 class="slds-card__header-title">Experian Decisions</h2>
+      </div>
+      <div if:true={currentDecision.id} class="slds-grid slds-gutters">
+        <div class="slds-col">
+          <p>
+            <span class="slds-item_label slds-text-color_weak">Date: </span>
+            {currentDecision.date}
+          </p>
+          <p>
+            <span class="slds-item_label slds-text-color_weak">Score: </span>
+            {currentDecision.score}
+          </p>
         </div>
-      </header>
-      <div class="slds-no-flex">
-        <lightning-button
-          label="Get new Decision"
-          variant="brand"
-          onclick={handlePullNewDecision}
-          disabled={isLoading}
-        ></lightning-button>
+        <div class="slds-col">
+          <p>
+            <span class="slds-item_label slds-text-color_weak"
+              >Credit Limit:
+            </span>
+            {currentDecision.creditLimit}
+          </p>
+          <p>
+            <span class="slds-item_label slds-text-color_weak"
+              >Triggered Rule:
+            </span>
+            {currentDecision.triggeredRule}
+          </p>
+        </div>
       </div>
     </div>
-    <div class="slds-card__body slds-card__body_inner">
-      <template if:true={isLoading}>
-        <lightning-spinner
-          alternative-text="Loading"
-          size="medium"
-        ></lightning-spinner>
-      </template>
 
-      <template if:true={currentDecision.id}>
-        <article
-          class="slds-card current-decision"
-          onclick={handleCurrentDecisionClick}
-        >
-          <div class="slds-card__header slds-grid">
-            <header
-              class="slds-media slds-media_center slds-has-flexi-truncate"
-            >
-              <div class="slds-media__figure">
-                <lightning-icon
-                  icon-name={currentDecision.icon}
-                  size="small"
-                  alternative-text={currentDecision.decision}
-                ></lightning-icon>
-              </div>
-              <div class="slds-media__body">
-                <h3 class="slds-text-heading_small">Current Decision</h3>
-              </div>
-            </header>
-          </div>
-          <div class="slds-card__body slds-card__body_inner">
-            <dl class="slds-list_horizontal slds-wrap">
-              <dt
-                class="slds-item_label slds-text-color_weak slds-truncate"
-                title="Decision Date"
+    <!-- Prior Decisions Section -->
+    <template if:true={hasPriorDecisions}>
+      <div class="slds-m-top_medium">
+        <lightning-accordion allow-multiple-sections-open>
+          <lightning-accordion-section
+            name="priorDecisions"
+            label="Prior Decisions"
+          >
+            <div class="slds-scrollable_y" style="height: 150px">
+              <table
+                class="slds-table slds-table_bordered slds-table_cell-buffer slds-table_striped"
               >
-                Decision Date:
-              </dt>
-              <dd
-                class="slds-item_detail slds-truncate"
-                title={currentDecision.date}
-              >
-                {currentDecision.date}
-              </dd>
-              <dt
-                class="slds-item_label slds-text-color_weak slds-truncate"
-                title="Score"
-              >
-                Score:
-              </dt>
-              <dd
-                class="slds-item_detail slds-truncate"
-                title={currentDecision.score}
-              >
-                {currentDecision.score}
-              </dd>
-              <dt
-                class="slds-item_label slds-text-color_weak slds-truncate"
-                title="Decision"
-              >
-                Decision:
-              </dt>
-              <dd
-                class="slds-item_detail slds-truncate"
-                title={currentDecision.decision}
-              >
-                <span class={currentDecision.statusClass}
-                  >{currentDecision.decision}</span
-                >
-              </dd>
-              <dt
-                class="slds-item_label slds-text-color_weak slds-truncate"
-                title="Credit Limit"
-              >
-                Credit Limit:
-              </dt>
-              <dd
-                class="slds-item_detail slds-truncate"
-                title={currentDecision.creditLimit}
-              >
-                {currentDecision.creditLimit}
-              </dd>
-              <dt
-                class="slds-item_label slds-text-color_weak slds-truncate"
-                title="Triggered Rule"
-              >
-                Triggered Rule:
-              </dt>
-              <dd
-                class="slds-item_detail slds-truncate"
-                title={currentDecision.triggeredRule}
-              >
-                {currentDecision.triggeredRule}
-              </dd>
-            </dl>
-          </div>
-        </article>
-      </template>
-
-      <template if:false={currentDecision.id}>
-        <div class="slds-illustration slds-illustration_small">
-          <lightning-icon
-            icon-name="utility:problem"
-            alternative-text="Approved"
-            title="Approved"
-          ></lightning-icon>
-          <div class="slds-text-longform">
-            <h3 class="slds-text-heading_medium">No decisions available</h3>
-            <p class="slds-text-body_regular">
-              Pull a new decision to get started.
-            </p>
-          </div>
-        </div>
-      </template>
-
-      <template if:true={priorDecisions.length}>
-        <div class="slds-m-top_medium">
-          <lightning-accordion allow-multiple-sections-open>
-            <lightning-accordion-section
-              name="priorDecisions"
-              label="Prior Decisions"
-            >
-              <div class="slds-scrollable_y" style="height: 150px">
-                <table
-                  class="slds-table slds-table_bordered slds-table_cell-buffer slds-table_striped"
-                >
-                  <thead>
-                    <tr class="slds-line-height_reset">
-                      <th class="" scope="col">
-                        <div class="slds-truncate" title="Decision Date">
-                          Decision Date
+                <thead>
+                  <tr class="slds-line-height_reset">
+                    <th class="" scope="col">
+                      <div class="slds-truncate" title="Decision Date">
+                        Decision Date
+                      </div>
+                    </th>
+                    <th class="" scope="col">
+                      <div class="slds-truncate" title="Score">Score</div>
+                    </th>
+                    <th class="" scope="col">
+                      <div class="slds-truncate" title="Decision">Decision</div>
+                    </th>
+                    <th class="" scope="col">
+                      <div class="slds-truncate" title="Credit Limit">
+                        Credit Limit
+                      </div>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <template for:each={priorDecisions} for:item="decision">
+                    <tr key={decision.id} onclick={handleRowAction}>
+                      <td>
+                        <div class="slds-truncate" title={decision.date}>
+                          {decision.date}
                         </div>
-                      </th>
-                      <th class="" scope="col">
-                        <div class="slds-truncate" title="Score">Score</div>
-                      </th>
-                      <th class="" scope="col">
-                        <div class="slds-truncate" title="Decision">
-                          Decision
+                      </td>
+                      <td>
+                        <div class="slds-truncate" title={decision.score}>
+                          {decision.score}
                         </div>
-                      </th>
-                      <th class="" scope="col">
-                        <div class="slds-truncate" title="Credit Limit">
-                          Credit Limit
-                        </div>
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <template for:each={priorDecisions} for:item="decision">
-                      <tr key={decision.id} onclick={handleRowAction}>
-                        <td>
-                          <div class="slds-truncate" title={decision.date}>
-                            {decision.date}
-                          </div>
-                        </td>
-                        <td>
-                          <div class="slds-truncate" title={decision.score}>
-                            {decision.score}
-                          </div>
-                        </td>
-                        <td>
-                          <div class="slds-truncate" title={decision.decision}>
-                            <lightning-icon
-                              icon-name={decision.icon}
-                              size="xx-small"
-                              alternative-text={decision.decision}
-                              class="slds-m-right_x-small"
-                            ></lightning-icon>
-                            <span class={decision.statusClass}
-                              >{decision.decision}</span
-                            >
-                          </div>
-                        </td>
-                        <td>
-                          <div
-                            class="slds-truncate"
-                            title={decision.creditLimit}
+                      </td>
+                      <td>
+                        <div class="slds-truncate" title={decision.decision}>
+                          <lightning-icon
+                            icon-name={decision.icon}
+                            size="xx-small"
+                            alternative-text={decision.decision}
+                            class="slds-m-right_x-small"
+                          ></lightning-icon>
+                          <span class={decision.statusClass}
+                            >{decision.decision}</span
                           >
-                            {decision.creditLimit}
-                          </div>
-                        </td>
-                      </tr>
-                    </template>
-                  </tbody>
-                </table>
-              </div>
-            </lightning-accordion-section>
-          </lightning-accordion>
-        </div>
-      </template>
+                        </div>
+                      </td>
+                      <td>
+                        <div class="slds-truncate" title={decision.creditLimit}>
+                          {decision.creditLimit}
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
+            </div>
+          </lightning-accordion-section>
+        </lightning-accordion>
+      </div>
+    </template>
+
+    <!-- No Decisions Message -->
+    <div
+      if:false={currentDecision.id}
+      class="slds-illustration slds-illustration_small slds-m-around_medium"
+    >
+      <div class="slds-text-longform">
+        <h3 class="slds-text-heading_medium">No decisions available</h3>
+        <p>Pull a new decision to get started.</p>
+      </div>
     </div>
-  </div>
+
+    <!-- Loading Spinner -->
+    <div if:true={isLoading} class="slds-is-relative slds-m-around_medium">
+      <lightning-spinner
+        alternative-text="Loading"
+        size="medium"
+      ></lightning-spinner>
+    </div>
+
+    <!-- Business Selection Modal -->
+    <template if:true={showModal}>
+      <section
+        role="dialog"
+        tabindex="-1"
+        aria-labelledby="modal-heading-01"
+        aria-modal="true"
+        aria-describedby="modal-content-id-1"
+        class="slds-modal slds-fade-in-open"
+      >
+        <div class="slds-modal__container">
+          <header class="slds-modal__header">
+            <h2 id="modal-heading-01" class="slds-modal__title slds-hyphenate">
+              Select a Business
+            </h2>
+          </header>
+          <div
+            class="slds-modal__content slds-p-around_medium"
+            id="modal-content-id-1"
+          >
+            <lightning-datatable
+              key-field="bin"
+              data={businessResults}
+              columns={businessColumns}
+              onrowaction={handleBusinessSelection}
+            >
+            </lightning-datatable>
+          </div>
+          <footer class="slds-modal__footer">
+            <button
+              class="slds-button slds-button_neutral"
+              onclick={closeModal}
+            >
+              Cancel
+            </button>
+          </footer>
+        </div>
+      </section>
+      <div class="slds-backdrop slds-backdrop_open"></div>
+    </template>
+  </lightning-card>
 </template>

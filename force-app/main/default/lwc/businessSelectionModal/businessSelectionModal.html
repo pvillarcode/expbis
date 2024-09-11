@@ -1,0 +1,15 @@
+<template>
+  <lightning-modal-header label="Select a Business"></lightning-modal-header>
+  <lightning-modal-body>
+    <lightning-datatable
+      key-field="bin"
+      data={businessResults}
+      columns={columns}
+      onrowaction={handleRowAction}
+    >
+    </lightning-datatable>
+  </lightning-modal-body>
+  <lightning-modal-footer>
+    <lightning-button label="Cancel" onclick={handleCancel}></lightning-button>
+  </lightning-modal-footer>
+</template>

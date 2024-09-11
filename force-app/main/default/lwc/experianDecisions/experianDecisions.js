@@ -1,16 +1,43 @@
-import { LightningElement, api, wire } from "lwc";
+import { LightningElement, api, wire, track } from "lwc";
 import { ShowToastEvent } from "lightning/platformShowToastEvent";
-import pullNewDecision from "@salesforce/apex/ExperianDecisionController.pullNewDecision";
+import initiateDecisionProcess from "@salesforce/apex/ExperianDecisionController.initiateDecisionProcess";
+import pullDecisionForSelectedBusiness from "@salesforce/apex/ExperianDecisionController.pullDecisionForSelectedBusiness";
 import getAllDecisions from "@salesforce/apex/ExperianDecisionController.getAllDecisions";
 import { refreshApex } from "@salesforce/apex";
+import BusinessSelectionModal from "c/businessSelectionModal";
 
-export default class DecisionHistory extends LightningElement {
+export default class ExperianDecisions extends LightningElement {
   @api recordId;
-  @api accountId;
-  currentDecision = {};
-  priorDecisions = [];
-  isLoading = false;
+  @track currentDecision = {};
+  @track priorDecisions = [];
+  @track isLoading = false;
   wiredDecisionsResult;
+  lastDecisionId;
+
+  columns = [
+    { label: "Date", fieldName: "date", type: "text" },
+    { label: "Score", fieldName: "score", type: "text" },
+    { label: "Decision", fieldName: "decision", type: "text" },
+    { label: "Credit Limit", fieldName: "creditLimit", type: "text" },
+    { label: "Triggered Rule", fieldName: "triggeredRule", type: "text" }
+  ];
+
+  businessColumns = [
+    { label: "Business Name", fieldName: "name", type: "text" },
+    { label: "BIN", fieldName: "bin", type: "text" },
+    { label: "Address", fieldName: "fullAddress", type: "text" },
+    {
+      type: "button",
+      typeAttributes: {
+        label: "Select",
+        name: "select",
+        title: "Select",
+        disabled: false,
+        value: "select",
+        iconPosition: "left"
+      }
+    }
+  ];
 
   @wire(getAllDecisions, { accountId: "$recordId" })
   wiredDecisions(result) {
@@ -30,14 +57,27 @@ export default class DecisionHistory extends LightningElement {
 
   processDecisions(decisions) {
     if (decisions && decisions.length > 0) {
-      this.currentDecision = this.formatDecision(decisions[0]);
-      this.priorDecisions = decisions
-        .slice(1)
-        .map((decision) => this.formatDecision(decision));
+      const latestDecision = decisions[0];
+      const formattedLatestDecision = this.formatDecision(latestDecision);
+
+      if (
+        !this.lastDecisionId ||
+        this.lastDecisionId !== formattedLatestDecision.id
+      ) {
+        this.currentDecision = formattedLatestDecision;
+        if (decisions.length > 1) {
+          this.priorDecisions = decisions
+            .slice(1)
+            .map((decision) => this.formatDecision(decision));
+        }
+        this.lastDecisionId = formattedLatestDecision.id;
+      }
     } else {
       this.currentDecision = this.getEmptyDecision();
       this.priorDecisions = [];
+      this.lastDecisionId = null;
     }
+    this.isLoading = false;
   }
 
   formatDecision(decision) {
@@ -54,6 +94,7 @@ export default class DecisionHistory extends LightningElement {
   }
 
   formatDate(dateString) {
+    console.log("dateString", dateString);
     if (!dateString) return "N/A";
     const date = new Date(dateString);
     return new Intl.DateTimeFormat("en-US", {
@@ -61,15 +102,6 @@ export default class DecisionHistory extends LightningElement {
       month: "short",
       day: "numeric"
     }).format(date);
-  }
-
-  formatCurrency(amount) {
-    if (!amount) return "N/A";
-    console.log(amount);
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD"
-    }).format(amount);
   }
 
   getEmptyDecision() {
@@ -85,36 +117,139 @@ export default class DecisionHistory extends LightningElement {
     };
   }
 
-  handlePullNewDecision() {
+  async handlePullNewDecision() {
     this.isLoading = true;
-    pullNewDecision({ accountId: this.recordId })
+    try {
+      const result = await initiateDecisionProcess({
+        accountId: this.recordId
+      });
+      if (result.success === false) {
+        this.showToast("Error", result.message, "error");
+      } else if (result.businessResults) {
+        // Show modal with business results
+        const businessResults = this.processBusinessResults(
+          result.businessResults
+        );
+        const selectedBusiness = await BusinessSelectionModal.open({
+          size: "medium",
+          businessResults: businessResults
+        });
+        if (selectedBusiness) {
+          await this.pullDecisionForBusiness(selectedBusiness);
+        }
+      } else if (result.decision) {
+        // Decision pulled for existing business
+        this.processNewDecision(result.decision);
+        this.showToast("Success", result.message, "success");
+      }
+    } catch (error) {
+      console.error("Error initiating decision process", error);
+      this.showToast(
+        "Error",
+        "Failed to initiate decision process: " + error.body.message,
+        "error"
+      );
+    } finally {
+      this.isLoading = false;
+    }
+  }
+
+  async pullDecisionForBusiness(selectedBusiness) {
+    try {
+      const result = await pullDecisionForSelectedBusiness({
+        accountId: this.recordId,
+        bin: selectedBusiness.bin,
+        businessName: selectedBusiness.name,
+        street: selectedBusiness.street,
+        city: selectedBusiness.city,
+        state: selectedBusiness.state,
+        zip: selectedBusiness.zip
+      });
+
+      if (result.success) {
+        this.processNewDecision(result.decision);
+      } else {
+        this.showToast("Error", result.message, "error");
+      }
+    } catch (error) {
+      console.error("Error pulling decision for selected business", error);
+      this.showToast(
+        "Error",
+        "Failed to pull decision: " + error.body.message,
+        "error"
+      );
+    }
+  }
+
+  processBusinessResults(results) {
+    return results.map((business) => ({
+      ...business,
+      fullAddress: `${business.street}, ${business.city}, ${business.state} ${business.zip}`
+    }));
+  }
+
+  handleBusinessSelection(event) {
+    const selectedBusiness = this.businessResults.find(
+      (business) => business.bin === event.detail.row.bin
+    );
+    this.isLoading = true;
+    this.showModal = false;
+
+    pullDecisionForSelectedBusiness({
+      accountId: this.recordId,
+      bin: selectedBusiness.bin,
+      businessName: selectedBusiness.name,
+      street: selectedBusiness.street,
+      city: selectedBusiness.city,
+      state: selectedBusiness.state,
+      zip: selectedBusiness.zip
+    })
       .then((result) => {
-        if (result.success === false) {
-          this.showToast("Error", result.message, "error");
+        if (result.success) {
+          this.processNewDecision(result.decision);
+          this.showToast("Success", result.message, "success");
         } else {
-          refreshApex(this.wiredDecisionsResult).then(() => {
-            const toastVariant = this.getToastVariant(
-              this.currentDecision.decision
-            );
-            this.showToast(
-              "New Decision",
-              `Decision: ${this.currentDecision.decision}`,
-              toastVariant
-            );
-          });
+          this.showToast("Error", result.message, "error");
         }
       })
       .catch((error) => {
-        console.error("Error pulling new decision", error);
+        console.error("Error pulling decision for selected business", error);
         this.showToast(
           "Error",
-          "Failed to pull new decision: " + error.body.message,
+          "Failed to pull decision: " + error.body.message,
           "error"
         );
       })
       .finally(() => {
         this.isLoading = false;
       });
+  }
+
+  processNewDecision(decision) {
+    console.log("decision", decision);
+    const formattedDecision = this.formatDecision(decision);
+
+    // Clear prior decisions if this is the first decision
+    if (!this.lastDecisionId) {
+      this.priorDecisions = [];
+    } else {
+      this.priorDecisions = [this.currentDecision, ...this.priorDecisions];
+    }
+    this.currentDecision = formattedDecision;
+    this.lastDecisionId = formattedDecision.id;
+    refreshApex(this.wiredDecisionsResult);
+
+    // Determine toast variant based on decision
+    const toastVariant = this.getToastVariant(formattedDecision.decision);
+    this.showToast(
+      "New Decision",
+      `Decision: ${formattedDecision.decision}`,
+      toastVariant
+    );
+  }
+
+  closeModal() {
+    this.showModal = false;
   }
 
   getStatusClass(decision) {
@@ -163,5 +298,8 @@ export default class DecisionHistory extends LightningElement {
       variant: variant
     });
     this.dispatchEvent(evt);
+  }
+  get hasPriorDecisions() {
+    return this.priorDecisions.length > 0;
   }
 }
